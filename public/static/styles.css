@@ -67,7 +67,7 @@ body::before {
 }
 
 .primary-button {
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    background: var(--primary);
     border: none;
     color: white;
 }
