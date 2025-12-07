@@ -182,8 +182,10 @@
                 </div>
 
                 <div style="display:flex;gap:12px;margin-top:auto;">
-                    <button id="profileSaveBtn" class="primary-button" style="flex:1;"><i class="fas fa-cloud-arrow-up"></i> Save</button>
-                    <button id="profileCancelBtn" class="secondary-button" style="flex:1;"><i class="fas fa-rotate-left"></i> Cancel</button>
+                    <button id="profileSaveBtn" class="primary-button" style="flex:1;"><i
+                            class="fas fa-cloud-arrow-up"></i> Save</button>
+                    <button id="profileCancelBtn" class="secondary-button" style="flex:1;"><i
+                            class="fas fa-rotate-left"></i> Cancel</button>
                 </div>
             </div>
         </div>
@@ -257,7 +259,9 @@
         }
 
         function confirmLogout() {
-            document.querySelector('#logoutModal > div').innerHTML = '<div style="font-size:48px;">👋</div>';
+            document.querySelector('#logoutModal').innerHTML = `<div style="background:linear-gradient(180deg,#0b1220,#0f1724);padding:14px;border-radius:16px;text-align:center;max-width:320px;box-shadow:0 20px 60px rgba(0,0,0,0.8);border:1px solid rgba(255,255,255,0.08);">
+                <div onClick="cancelLogout()" style="cursor:pointer; font-size:14px; color: white; float: right; line-height: 1;">X</div><div style="font-size:48px; margin: 16px;">👋</div>
+            </div>`;
             AuthService.logout();
             Router.redirectTo('auth');
         }
