@@ -72,10 +72,18 @@ body::before {
     color: white;
 }
 
+.primary-button:hover {
+    background: var(--primary-light);
+}
+
 .secondary-button {
     background: transparent;
     border: 1px solid rgba(255, 255, 255, 0.08);
     color: var(--text-secondary);
+}
+
+.secondary-button:hover {
+    background: rgba(255, 255, 255, 0.05);
 }
 
 .primary-button[disabled],
@@ -608,7 +616,6 @@ body::before {
 }
 
 .editCodeBtn:hover {
-    background: var(--primary-light);
     transform: scale(1.05);
 }
 
