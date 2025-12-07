@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SoloLearn 2.0 - Authentication</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" />
+    <link rel="stylesheet" href="/styles.css" />
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #764ba2;
+            --background: #0a0e27;
+            --surface: #111827;
+            --surface-alt: #1f2937;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --success: #10b981;
+            --danger: #ef4444;
+        }
+
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--background) 0%, #1a1f3a 50%, var(--surface) 100%);
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .auth-card {
+            background: linear-gradient(180deg, rgba(26, 38, 71, 0.9) 0%, rgba(35, 45, 69, 0.8) 100%);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .auth-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .auth-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+            background-size: 30px 30px;
+            opacity: 0.5;
+        }
+
+        .auth-header h1 {
+            font-size: 36px;
+            margin-bottom: 8px;
+            font-weight: 800;
+            position: relative;
+            z-index: 1;
+            letter-spacing: -0.5px;
+        }
+
+        .auth-header p {
+            font-size: 15px;
+            opacity: 0.95;
+            position: relative;
+            z-index: 1;
+            font-weight: 300;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+            background: rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+
+        .tabs::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            background: var(--primary);
+            transition: all 0.3s ease;
+            width: 50%;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 16px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 1;
+        }
+
+        .tab-btn:hover {
+            color: var(--primary);
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+        }
+
+        .form-container {
+            padding: 35px;
+        }
+
+        .form-group {
+            margin-bottom: 22px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 10px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid var(--surface-alt);
+            border-radius: 10px;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            background: rgba(26, 38, 71, 0.6);
+            color: var(--text-primary);
+        }
+
+        .form-group input::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.6;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(26, 38, 71, 0.9);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+        }
+
+        .form-group small {
+            color: var(--text-secondary);
+            margin-top: 8px;
+            display: block;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .submit-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.2);
+            transition: left 0.3s ease;
+        }
+
+        .submit-btn:hover:not(.loading) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.5);
+        }
+
+        .submit-btn:hover::before {
+            left: 100%;
+        }
+
+        .submit-btn:active:not(.loading) {
+            transform: translateY(0);
+        }
+
+        .submit-btn.loading {
+            opacity: 0.7;
+            cursor: not-allowed;
+            position: relative;
+        }
+
+        .submit-btn.loading::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        @keyframes spin {
+            to {
+                transform: translateY(-50%) rotate(360deg);
+            }
+        }
+
+        .message {
+            margin-top: 16px;
+            padding: 14px 16px;
+            border-radius: 10px;
+            font-size: 14px;
+            display: none;
+            border-left: 4px solid;
+            background-color: rgba(0, 0, 0, 0.3);
+        }
+
+        .message.error {
+            border-left-color: var(--danger);
+            color: #ff9999;
+            display: block;
+        }
+
+        .message.success {
+            border-left-color: var(--success);
+            color: #99ff99;
+            display: block;
+        }
+
+        .link-text {
+            text-align: center;
+            margin-top: 18px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .link-text a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .link-text a:hover {
+            color: var(--primary-dark);
+            text-decoration: underline;
+        }
+
+        .divider {
+            text-align: center;
+            margin: 24px 0;
+            position: relative;
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        .divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: var(--surface-alt);
+            z-index: 0;
+        }
+
+        .divider span {
+            position: relative;
+            background: linear-gradient(180deg, rgba(26, 38, 71, 0.9) 0%, rgba(35, 45, 69, 0.8) 100%);
+            padding: 0 12px;
+            z-index: 1;
+        }
+
+        @media (max-width: 480px) {
+            .auth-header {
+                padding: 30px 24px;
+            }
+
+            .auth-header h1 {
+                font-size: 28px;
+            }
+
+            .form-container {
+                padding: 24px;
+            }
+
+            .container {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h1>🎓 SoloLearn 2.0</h1>
+                <p>Learn to Code Together</p>
+            </div>
+
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('login')">
+                    <i class="fas fa-sign-in-alt"></i> Log In
+                </button>
+                <button class="tab-btn" onclick="switchTab('register')">
+                    <i class="fas fa-user-plus"></i> Sign Up
+                </button>
+            </div>
+
+            <div id="login" class="tab-content active">
+                <div class="form-container">
+                    <form id="loginForm" onsubmit="handleLogin(event)">
+                        <div class="form-group">
+                            <label for="loginEmail">Email Address</label>
+                            <input type="email" id="loginEmail" placeholder="you@example.com" required />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="loginPassword">Password</label>
+                            <input type="password" id="loginPassword" placeholder="••••••••" required />
+                        </div>
+
+                        <button type="submit" class="submit-btn" id="loginBtn">
+                            <i class="fas fa-sign-in-alt"></i> Log In
+                        </button>
+
+                        <div class="message" id="loginMessage"></div>
+                    </form>
+
+                    <div class="link-text">
+                        Don't have an account? <a onclick="switchTab('register')">Sign up</a>
+                    </div>
+                </div>
+            </div>
+
+            <div id="register" class="tab-content">
+                <div class="form-container">
+                    <form id="registerForm" onsubmit="handleRegister(event)">
+                        <div class="form-group">
+                            <label for="regName">Full Name</label>
+                            <input type="text" id="regName" placeholder="John Doe" required />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="regEmail">Email Address</label>
+                            <input type="email" id="regEmail" placeholder="you@example.com" required />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="regPassword">Password</label>
+                            <input type="password" id="regPassword" placeholder="••••••••" minlength="6" required />
+                            <small style="color: #999; margin-top: 5px; display: block;">Minimum 6 characters</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="regPasswordConfirm">Confirm Password</label>
+                            <input type="password" id="regPasswordConfirm" placeholder="••••••••" required />
+                        </div>
+
+                        <button type="submit" class="submit-btn" id="registerBtn">
+                            <i class="fas fa-user-plus"></i> Sign Up
+                        </button>
+
+                        <div class="message" id="registerMessage"></div>
+                    </form>
+
+                    <div class="link-text">
+                        Already have an account? <a onclick="switchTab('login')">Log in</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="authService.js"></script>
+    <script src="router.js"></script>
+
+    <script>
+        function updateTabIndicator() {
+            const activeBtn = document.querySelector('.tab-btn.active');
+            const tabsContainer = document.querySelector('.tabs');
+            const indicator = tabsContainer.querySelector('::after') || tabsContainer;
+            
+            if (activeBtn) {
+                const btnRect = activeBtn.getBoundingClientRect();
+                const containerRect = tabsContainer.getBoundingClientRect();
+                const left = btnRect.left - containerRect.left;
+                const width = btnRect.width;
+                
+                tabsContainer.style.setProperty('--indicator-left', left + 'px');
+                tabsContainer.style.setProperty('--indicator-width', width + 'px');
+            }
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tab).classList.add('active');
+
+            const buttons = document.querySelectorAll('.tab-btn');
+            buttons.forEach(btn => {
+                if (btn.getAttribute('onclick').includes(`'${tab}'`)) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            updateTabIndicator();
+        }
+
+        function showMessage(elementId, message, type = 'error') {
+            const el = document.getElementById(elementId);
+            el.textContent = message;
+            el.className = `message ${type}`;
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const btn = document.getElementById('loginBtn');
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+
+            btn.classList.add('loading');
+            btn.disabled = true;
+
+            try {
+                await AuthService.login(email, password);
+                showMessage('loginMessage', '✅ Login successful! Redirecting...', 'success');
+                setTimeout(() => {
+                    Router.redirectTo('dashboard');
+                }, 1000);
+            } catch (err) {
+                showMessage('loginMessage', `❌ ${err.message}`, 'error');
+                btn.classList.remove('loading');
+                btn.disabled = false;
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const btn = document.getElementById('registerBtn');
+            const name = document.getElementById('regName').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+            const password = document.getElementById('regPassword').value;
+            const passwordConfirm = document.getElementById('regPasswordConfirm').value;
+
+            if (password !== passwordConfirm) {
+                showMessage('registerMessage', '❌ Passwords do not match', 'error');
+                return;
+            }
+
+            btn.classList.add('loading');
+            btn.disabled = true;
+
+            try {
+                await AuthService.register(email, password, name);
+                showMessage('registerMessage', '✅ Registration successful! Redirecting...', 'success');
+                setTimeout(() => {
+                    Router.redirectTo('dashboard');
+                }, 1000);
+            } catch (err) {
+                showMessage('registerMessage', `❌ ${err.message}`, 'error');
+                btn.classList.remove('loading');
+                btn.disabled = false;
+            }
+        }
+
+        // Ініціалізація при завантаженні сторінки
+        document.addEventListener('DOMContentLoaded', updateTabIndicator);
+        window.addEventListener('resize', updateTabIndicator);
+    </script>
+</body>
+
+</html>
