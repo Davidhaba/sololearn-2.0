@@ -853,6 +853,8 @@ function displayCodes(filterType) {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
             btn.classList.toggle('liked');
+            const codeId = btn.getAttribute('data-code-id');
+            if (codeId) showNotification("The likes feature has not been implemented yet, but will be soon.");
         });
     });
     container.querySelectorAll('.editCodeBtn').forEach(btn => {
@@ -896,7 +898,7 @@ function buildCodeCard(code) {
             <div class="codeCardFooter">
                 <div style="display: flex; gap: 16px; flex: 1;">
                     <span><i class="fas fa-eye"></i> ${code.views}</span>
-                    <button class="likeCodeBtn" style="display: flex; align-items: center; gap: 4px; background: none; border: none; color: var(--text-secondary); cursor: pointer; transition: all 0.3s;">
+                    <button class="likeCodeBtn" data-code-id="${code.id}">
                         <i class="fas fa-heart"></i> ${code.likes}
                     </button>
                 </div>

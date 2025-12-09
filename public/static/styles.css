@@ -606,6 +606,17 @@ body::before {
     font-size: 14px;
 }
 
+.likeCodeBtn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
 .likeCodeBtn:hover {
     color: var(--secondary);
     transform: scale(1.1);
