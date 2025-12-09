@@ -60,7 +60,7 @@ function initializeEventListeners() {
         if (streakEl) streakEl.textContent = currentUser.streak || 0;
         if (livesEl) livesEl.textContent = currentUser.lives || 0;
         if (notifEl) {
-            if (currentUser.notifications.length >= 1) {
+            if (currentUser.notifications && currentUser.notifications.length >= 1) {
                 notifEl.textContent = currentUser.notifications.length || 0;
                 notifEl.style.display = 'block';
             } else {
@@ -86,7 +86,7 @@ function initializeEventListeners() {
 
     document.getElementById('favBtn').addEventListener('click', () => {
         const currentUser = getAuthStoredUser();
-        if (currentUser && currentUser.lives >= 1) {
+        if (currentUser && currentUser.lives && currentUser.lives >= 1) {
             showNotification(`❤️ You have ${currentUser.lives || 0} lives!`);
             if (livesEl) livesEl.textContent = currentUser.lives || 0;
         } else {
@@ -97,7 +97,7 @@ function initializeEventListeners() {
 
     document.getElementById('streakBtn').addEventListener('click', () => {
         const currentUser = getAuthStoredUser();
-        if (currentUser && currentUser.streak >= 1) {
+        if (currentUser && currentUser.streak && currentUser.streak >= 1) {
             showNotification(`🔥 Your current streak: ${currentUser.streak || 0} days!`);
             if (streakEl) streakEl.textContent = currentUser.streak || 0;
         } else {
@@ -107,9 +107,10 @@ function initializeEventListeners() {
     });
 
     document.getElementById('notifBtn').addEventListener('click', () => {
-        if (AppState.notifications.length >= 1) {
-            showNotification(`📢 You have ${AppState.notifications.length || 0} notifications!`);
-            if (notifEl) notifEl.textContent = AppState.notifications.length || 0;
+        const currentUser = getAuthStoredUser();
+        if (currentUser && currentUser.notifications && currentUser.notifications.length >= 1) {
+            showNotification(`📢 You have ${currentUser.notifications.length || 0} notifications!`);
+            if (notifEl) notifEl.textContent = currentUser.notifications.length || 0;
         } else {
             showNotification("You have no notifications.");
             if (notifEl) notifEl.textContent = '0';
