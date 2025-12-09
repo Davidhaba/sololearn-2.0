@@ -10,12 +10,11 @@ function getToken() {
     return (typeof AuthService !== 'undefined') ? AuthService.getToken() || null : null;
 }
 
-function getStoredUser() {
-    const user = AppState.currentUser || (typeof AuthService !== 'undefined') ? AuthService.getStoredUser() : null || null;
-    console.log(user);
-    console.log(AppState.currentUser);
-    console.log(AuthService?.getStoredUser());
-    return user;
+function getAuthStoredUser() {
+    if (AppState.currentUser) return AppState.currentUser;
+    const authStored = typeof AuthService?.getStoredUser === 'function' ? AuthService.getStoredUser() : null;
+    if (authStored) return authStored;
+    return null;
 }
 
 async function fetchUsersFromApi() {
@@ -53,7 +52,7 @@ if (document.readyState === 'loading') {
 }
 
 function initializeEventListeners() {
-    const currentUser = getStoredUser();
+    const currentUser = getAuthStoredUser();
     const streakEl = document.getElementById('streakCount');
     const livesEl = document.getElementById('livesCount');
     const notifEl = document.getElementById('notifCount');
@@ -76,7 +75,7 @@ function initializeEventListeners() {
             const screenId = button.getAttribute('data-open-screen');
             changeScreen(screenId);
             if (screenId === 'userProfile') {
-                const currentUser = getStoredUser();
+                const currentUser = getAuthStoredUser();
                 loadProfileById(currentUser?.id || null);
                 updateProfileImage(currentUser);
             }
@@ -86,7 +85,7 @@ function initializeEventListeners() {
     });
 
     document.getElementById('favBtn').addEventListener('click', () => {
-        const currentUser = getStoredUser();
+        const currentUser = getAuthStoredUser();
         if (currentUser && currentUser.lives >= 1) {
             showNotification(`❤️ You have ${currentUser.lives || 0} lives!`);
             if (livesEl) livesEl.textContent = currentUser.lives || 0;
@@ -97,7 +96,7 @@ function initializeEventListeners() {
     });
 
     document.getElementById('streakBtn').addEventListener('click', () => {
-        const currentUser = getStoredUser();
+        const currentUser = getAuthStoredUser();
         if (currentUser && currentUser.streak >= 1) {
             showNotification(`🔥 Your current streak: ${currentUser.streak || 0} days!`);
             if (streakEl) streakEl.textContent = currentUser.streak || 0;
@@ -142,7 +141,7 @@ function initializeEventListeners() {
     if (sideProfile) {
         sideProfile.addEventListener('click', () => {
             changeScreen('userProfile');
-            const user = getStoredUser();
+            const user = getAuthStoredUser();
             loadProfileById(user?.id);
             closeSideMenu();
         });
@@ -167,7 +166,7 @@ function initializeEventListeners() {
 }
 
 function openProfileEditor() {
-    const user = getStoredUser();
+    const user = getAuthStoredUser();
     if (!user) return;
     const nameIn = document.getElementById('profileEditorName');
     const photoIn = document.getElementById('profileEditorPhoto');
@@ -233,7 +232,7 @@ async function saveProfileChanges(btn) {
 
 function cancelProfileEdit() {
     changeScreen('userProfile');
-    const current = getStoredUser().id || null;
+    const current = getAuthStoredUser().id || null;
     if (current) loadProfileById(current);
 }
 
@@ -251,7 +250,7 @@ function openSideMenu() {
     const overlay = document.getElementById('sideMenuOverlay');
     const avatar = document.getElementById('sideMenuAvatar');
     const nameEl = document.getElementById('sideMenuName');
-    const user = getStoredUser();
+    const user = getAuthStoredUser();
     if (nameEl) nameEl.textContent = user?.name || 'Unknown';
     if (avatar) avatar.outerHTML = createUserAvatar(user?.photo || null, user?.name || 'Unknown', avatar.attributes);
     if (overlay) {
@@ -332,7 +331,7 @@ async function loadProfileById(id) {
 function showUserProfile(user = null) {
     if (!user) return;
     const userScreen = document.getElementById('userProfile');
-    const currentUser = getStoredUser();
+    const currentUser = getAuthStoredUser();
     const isCurrent = (currentUser.id && user.id && String(user.id) === String(currentUser.id));
     user = {
         name: user.name || 'Unknown',
@@ -497,7 +496,7 @@ function renderLeaderboard(list, container) {
 }
 
 function buildLeaderboardRow(user, idx) {
-    const currentUser = getStoredUser();
+    const currentUser = getAuthStoredUser();
     const isCurrent = (currentUser && currentUser.id && user.id && String(user.id) === String(currentUser.id));
     return `
         <div style="display: flex; align-items: center; gap: 12px; padding: 14px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(236, 72, 153, 0.05)); border-radius: 12px; margin-bottom: 10px; border: 1px solid rgba(148, 163, 184, 0.1); transition: all 0.3s;">
@@ -808,7 +807,7 @@ function filterCodes(filterType) {
             });
             break;
         case 'myCode':
-            const currentUser = getStoredUser();
+            const currentUser = getAuthStoredUser();
             if (!currentUser || !currentUser.id) return [];
             codes = codes.filter(c => c.userid === currentUser.id).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
             break;
@@ -875,7 +874,7 @@ function displayCodes(filterType) {
 }
 
 function buildCodeCard(code) {
-    const currentUser = getStoredUser();
+    const currentUser = getAuthStoredUser();
     const isMyCode = currentUser && currentUser.id && code.userid === currentUser.id;
     const user = getUserById(code.userid);
     if (!user) return '';
