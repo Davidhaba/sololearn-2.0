@@ -291,10 +291,10 @@ function changeScreen(screenId) {
 
 async function updateUsers() {
     const onlineUsers = await fetchUsersFromApi();
-    if (Array.isArray(onlineUsers) && onlineUsers.length) {
+    if (onlineUsers && Array.isArray(onlineUsers) && onlineUsers.length) {
         AppState.users = onlineUsers;
-        return;
     }
+    return;
 }
 
 async function loadProfileById(id) {
@@ -672,7 +672,7 @@ function showReportModal(email, subject, body) {
 function getUserById(id) {
     const users = getUsersCache();
     if (users && Array.isArray(users)) {
-        const user = users.find(u => Number(u.id) === Number(id) || String(u.id) === String(id));
+        const user = users.find(u => String(u.id) === String(id));
         if (user) return user;
     }
     return null;
