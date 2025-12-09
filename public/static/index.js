@@ -4,7 +4,7 @@ const AppState = {
     users: null,
     notifications: [],
     lives: 5,
-    token: localStorage.getItem('authToken') || null,
+    token: AuthService.getToken() || null,
     currentEditingCode: null
 };
 
@@ -27,7 +27,6 @@ async function initApp() {
     if (currentUser) {
         AppState.userid = currentUser.id || 0;
         AppState.currentUser = currentUser;
-        localStorage.setItem('currentUser', JSON.stringify(currentUser));
         updateProfileImage(currentUser);
     }
     await updateUsers();
@@ -165,7 +164,6 @@ async function saveProfileChanges(btn) {
         if (!res.ok) throw new Error(data.error || `Status ${res.status}`);
 
         AppState.currentUser = data;
-        localStorage.setItem('currentUser', JSON.stringify(data));
         updateProfileImage(data);
         const sideName = document.getElementById('sideMenuName');
         if (sideName) sideName.textContent = data.name || 'User';

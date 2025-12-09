@@ -1,4 +1,5 @@
 const AuthService = (() => {
+    let authToken, currentUser;
     return {
         register: async (email, password, name) => {
             const res = await fetch('/auth/register', {
@@ -8,9 +9,12 @@ const AuthService = (() => {
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
-            
-            localStorage.setItem('authToken', data.token);
-            localStorage.setItem('user', JSON.stringify(data.user));
+            try {
+                localStorage.setItem('authToken', data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+            } catch { }
+            authToken = data.token;
+            currentUser = data.user;
             return data;
         },
 
@@ -22,21 +26,31 @@ const AuthService = (() => {
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
-            
-            localStorage.setItem('authToken', data.token);
-            localStorage.setItem('user', JSON.stringify(data.user));
+            try {
+                localStorage.setItem('authToken', data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+            } catch { }
+            authToken = data.token;
+            currentUser = data.user;
             return data;
         },
 
         logout: () => {
             localStorage.removeItem('authToken');
             localStorage.removeItem('user');
+            authToken = null;
+            currentUser = null;
         },
 
         getCurrentUser: async () => {
-            const token = localStorage.getItem('authToken');
+            let token;
+            try {
+                token = localStorage.getItem('authToken');
+            } catch {
+                token = authToken;
+            }
             if (!token) return null;
-            
+
             try {
                 const res = await fetch('/auth/me', {
                     method: 'GET',
@@ -49,6 +63,8 @@ const AuthService = (() => {
                 if (!res.ok) {
                     localStorage.removeItem('authToken');
                     localStorage.removeItem('user');
+                    authToken = null;
+                    currentUser = null;
                     return null;
                 }
                 return data;
@@ -59,16 +75,33 @@ const AuthService = (() => {
         },
 
         isAuthenticated: () => {
-            return !!localStorage.getItem('authToken');
+            let token;
+            try {
+                token = localStorage.getItem('authToken');
+            } catch {
+                token = authToken;
+            }
+            return !!token;
         },
 
         getToken: () => {
-            return localStorage.getItem('authToken');
+            let token;
+            try {
+                token = localStorage.getItem('authToken');
+            } catch {
+                token = authToken;
+            }
+            return token;
         },
 
         getStoredUser: () => {
-            const user = localStorage.getItem('user');
-            return user ? JSON.parse(user) : null;
+            let user;
+            try {
+                user = JSON.parse(localStorage.getItem('user'));
+            } catch {
+                user = currentUser;
+            }
+            return user ? user : null;
         }
     };
 })();
