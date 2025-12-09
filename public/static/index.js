@@ -1,6 +1,7 @@
 const AppState = {
     currentScreen: 'main',
     users: null,
+    currentUser: null,
     notifications: [],
     currentEditingCode: null
 };
@@ -10,7 +11,9 @@ function getToken() {
 }
 
 function getStoredUser() {
-    return AppState.currentUser || (typeof AuthService !== 'undefined') ? AuthService.getStoredUser() : null;
+    const user = AppState.currentUser || (typeof AuthService !== 'undefined') ? AuthService.getStoredUser() : null || null;
+    console.log(user);
+    return user;
 }
 
 async function fetchUsersFromApi() {
@@ -28,11 +31,11 @@ async function fetchUsersFromApi() {
 }
 
 async function initApp() {
-    const currentUser = (typeof AuthService !== 'undefined') ? await AuthService.getCurrentUser() : null;
-    if (currentUser) {
+    try {
+        const currentUser = await AuthService?.getCurrentUser() || null;
         AppState.currentUser = currentUser;
         updateProfileImage(currentUser);
-    }
+    } catch { }
     try {
         await updateUsers();
     } catch { }
@@ -72,7 +75,7 @@ function initializeEventListeners() {
             changeScreen(screenId);
             if (screenId === 'userProfile') {
                 const currentUser = getStoredUser();
-                loadProfileById(currentUser?.id);
+                loadProfileById(currentUser?.id || null);
                 updateProfileImage(currentUser);
             }
             else if (screenId === 'leaders') loadLeaderboard();
@@ -293,6 +296,7 @@ async function updateUsers() {
     const onlineUsers = await fetchUsersFromApi();
     if (onlineUsers && Array.isArray(onlineUsers) && onlineUsers.length) {
         AppState.users = onlineUsers;
+        AppState.currentUser = onlineUsers.find(u => String(u.id) === String(AppState.currentUser?.id)) || AppState.currentUser;
         return;
     }
     throw new Error('No users data received from API');
@@ -475,10 +479,10 @@ function renderLeaderboard(list, container) {
         link.addEventListener('click', (ev) => {
             ev.preventDefault();
             const idx = Number(link.getAttribute('data-profile-idx'));
-            const target = normalized[idx].id || null;
+            const target = normalized[idx];
             if (target) {
                 changeScreen('userProfile');
-                loadProfileById(target);
+                loadProfileById(target?.id || null);
             }
         });
     });
@@ -675,7 +679,7 @@ function showReportModal(email, subject, body) {
 function getUserById(id) {
     const users = getUsersCache();
     if (users && Array.isArray(users)) {
-        const user = users.find(u => String(u.id) === String(id));
+        const user = users.find(u => String(u.id) === String(id) || Number(u.id) === Number(id));
         if (user) return user;
     }
     return null;
