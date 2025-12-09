@@ -293,8 +293,9 @@ async function updateUsers() {
     const onlineUsers = await fetchUsersFromApi();
     if (onlineUsers && Array.isArray(onlineUsers) && onlineUsers.length) {
         AppState.users = onlineUsers;
+        return;
     }
-    return;
+    throw new Error('No users data received from API');
 }
 
 async function loadProfileById(id) {
@@ -302,11 +303,13 @@ async function loadProfileById(id) {
     userScreen.innerHTML = `<div style="color:var(--text-secondary)"><i class="fas fa-spinner fa-spin"></i> Loading profile...</div>`;
 
     const showFallback = () => {
-        userScreen.innerHTML = `<div style="color:var(--text-secondary)">Error loading profile</div>`;
+        userScreen.innerHTML = `<div style="color:var(--text-secondary)">Failed to load profile</div>`;
     };
     try {
         await updateUsers();
-    } catch { }
+    } catch (e) {
+        console.warn('Failed to update users:', e.message);
+    }
     try {
         if (typeof AuthService === 'undefined' || !AuthService.isAuthenticated()) {
             throw new Error('User not authenticated');
