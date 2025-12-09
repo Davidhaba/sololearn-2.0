@@ -66,8 +66,13 @@ const AuthService = (() => {
                     authToken = null;
                     currentUser = null;
                     return null;
+                } else {
+                    try {
+                        localStorage.setItem('user', JSON.stringify(data.user));
+                    } catch { }
+                    currentUser = data.user;
+                    return data;
                 }
-                return data;
             } catch (err) {
                 console.error('getCurrentUser error:', err);
                 return null;

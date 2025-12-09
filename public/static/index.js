@@ -1,17 +1,22 @@
 const AppState = {
     currentScreen: 'main',
-    userid: 0,
     users: null,
     notifications: [],
-    lives: 5,
-    token: AuthService.getToken() || null,
     currentEditingCode: null
 };
+
+function getToken() {
+    return (typeof AuthService !== 'undefined') ? AuthService.getToken() || null : null;
+}
+
+function getStoredUser() {
+    return AppState.currentUser || (typeof AuthService !== 'undefined') ? AuthService.getStoredUser() : null;
+}
 
 async function fetchUsersFromApi() {
     try {
         const response = await fetch('/api/users', {
-            method: 'GET', headers: { 'Authorization': `Bearer ${AppState.token}`, 'Content-Type': 'application/json' }
+            method: 'GET', headers: { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' }
         });
 
         if (!response.ok) throw new Error(response.status);
@@ -23,16 +28,16 @@ async function fetchUsersFromApi() {
 }
 
 async function initApp() {
-    const currentUser = await AuthService.getCurrentUser();
+    const currentUser = (typeof AuthService !== 'undefined') ? await AuthService.getCurrentUser() : null;
     if (currentUser) {
-        AppState.userid = currentUser.id || 0;
         AppState.currentUser = currentUser;
         updateProfileImage(currentUser);
     }
-    await updateUsers();
+    try {
+        await updateUsers();
+    } catch { }
     initializeEventListeners();
     initializeCodeTab();
-    displayUserData();
     changeScreen('main');
 }
 
@@ -43,16 +48,32 @@ if (document.readyState === 'loading') {
 }
 
 function initializeEventListeners() {
+    const currentUser = getStoredUser();
+    const streakEl = document.getElementById('streakCount');
+    const livesEl = document.getElementById('livesCount');
+    const notifEl = document.getElementById('notifCount');
+    if (currentUser) {
+        if (streakEl) streakEl.textContent = currentUser.streak || 0;
+        if (livesEl) livesEl.textContent = currentUser.lives || 0;
+        if (notifEl) {
+            if (currentUser.notifications.length >= 1) {
+                notifEl.textContent = currentUser.notifications.length || 0;
+                notifEl.style.display = 'block';
+            } else {
+                notifEl.textContent = '0';
+                notifEl.style.display = 'none';
+            }
+        }
+    }
+
     document.querySelectorAll('[data-open-screen]').forEach(button => {
         button.addEventListener('click', (e) => {
             const screenId = button.getAttribute('data-open-screen');
             changeScreen(screenId);
             if (screenId === 'userProfile') {
-                loadProfileById(AppState.userid);
-                const currentUser = AppState.currentUser || AuthService.getStoredUser();
-                if (currentUser) {
-                    updateProfileImage(currentUser);
-                }
+                const currentUser = getStoredUser();
+                loadProfileById(currentUser?.id);
+                updateProfileImage(currentUser);
             }
             else if (screenId === 'leaders') loadLeaderboard();
             else if (screenId === 'code') displayCodes('trending');
@@ -60,19 +81,35 @@ function initializeEventListeners() {
     });
 
     document.getElementById('favBtn').addEventListener('click', () => {
-        showNotification(`❤️ You have ${AppState.lives || 0} lives!`);
+        const currentUser = getStoredUser();
+        if (currentUser && currentUser.lives >= 1) {
+            showNotification(`❤️ You have ${currentUser.lives || 0} lives!`);
+            if (livesEl) livesEl.textContent = currentUser.lives || 0;
+        } else {
+            showNotification("You have no lives.");
+            if (livesEl) livesEl.textContent = '0';
+        }
     });
 
     document.getElementById('streakBtn').addEventListener('click', () => {
-        const currentUser = getUserById(AppState.userid);
-        if (currentUser) {
+        const currentUser = getStoredUser();
+        if (currentUser && currentUser.streak >= 1) {
             showNotification(`🔥 Your current streak: ${currentUser.streak || 0} days!`);
-            document.getElementById('streakCount').textContent = currentUser.streak || 0;
+            if (streakEl) streakEl.textContent = currentUser.streak || 0;
+        } else {
+            showNotification("You have no active streak.");
+            if (streakEl) streakEl.textContent = '0';
         }
     });
 
     document.getElementById('notifBtn').addEventListener('click', () => {
-        showNotification((AppState.notifications.length >= 1) ? `📢 You have ${AppState.notifications.length || 0} new notifications!` : "You have no new notifications.");
+        if (AppState.notifications.length >= 1) {
+            showNotification(`📢 You have ${AppState.notifications.length || 0} notifications!`);
+            if (notifEl) notifEl.textContent = AppState.notifications.length || 0;
+        } else {
+            showNotification("You have no notifications.");
+            if (notifEl) notifEl.textContent = '0';
+        }
     });
 
     document.getElementById('menuBtn').addEventListener('click', () => {
@@ -100,11 +137,18 @@ function initializeEventListeners() {
     if (sideProfile) {
         sideProfile.addEventListener('click', () => {
             changeScreen('userProfile');
-            loadProfileById(AppState.userid);
+            const user = getStoredUser();
+            loadProfileById(user?.id);
             closeSideMenu();
         });
         sideProfile.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sideProfile.click();
+            }
+        });
+        sideProfile.addEventListener('keyup', (e) => {
+            if (e.key === ' ') {
                 e.preventDefault();
                 sideProfile.click();
             }
@@ -118,7 +162,7 @@ function initializeEventListeners() {
 }
 
 function openProfileEditor() {
-    const user = AppState.currentUser || AuthService.getStoredUser();
+    const user = getStoredUser();
     if (!user) return;
     const nameIn = document.getElementById('profileEditorName');
     const photoIn = document.getElementById('profileEditorPhoto');
@@ -148,7 +192,7 @@ async function saveProfileChanges(btn) {
         showNotification('Please enter your name.');
         return;
     }
-    if (!AppState.token) {
+    if (typeof AuthService === 'undefined' || !AuthService.isAuthenticated()) {
         btn.disabled = false;
         showNotification('You are not authenticated.');
         return;
@@ -156,7 +200,7 @@ async function saveProfileChanges(btn) {
 
     try {
         const res = await fetch('/auth/me', {
-            method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${AppState.token}` },
+            method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
             body: JSON.stringify({ name, photo })
         });
         const data = await res.json();
@@ -184,17 +228,17 @@ async function saveProfileChanges(btn) {
 
 function cancelProfileEdit() {
     changeScreen('userProfile');
-    const current = AppState.currentUser || AuthService.getStoredUser();
-    if (current) showUserProfile(current);
+    const current = getStoredUser().id || null;
+    if (current) loadProfileById(current);
 }
 
 function toggleSideMenu() {
     const overlay = document.getElementById('sideMenuOverlay');
     if (!overlay) return;
-    if (overlay.style.display === 'none' || overlay.style.display === '') {
-        openSideMenu();
-    } else {
+    if (overlay.style.display !== 'none') {
         closeSideMenu();
+    } else {
+        openSideMenu();
     }
 }
 
@@ -202,12 +246,13 @@ function openSideMenu() {
     const overlay = document.getElementById('sideMenuOverlay');
     const avatar = document.getElementById('sideMenuAvatar');
     const nameEl = document.getElementById('sideMenuName');
-    const user = AppState.currentUser || AuthService.getStoredUser();
-    if (nameEl && user && user.name) nameEl.textContent = user.name;
-    if (avatar && user) {
-        avatar.outerHTML = createUserAvatar(user.photo, user.name, avatar.attributes);
+    const user = getStoredUser();
+    if (nameEl) nameEl.textContent = user?.name || 'Unknown';
+    if (avatar) avatar.outerHTML = createUserAvatar(user?.photo || null, user?.name || 'Unknown', avatar.attributes);
+    if (overlay) {
+        overlay.style.display = 'block';
+        overlay.querySelector('#sideMenuProfile').focus();
     }
-    if (overlay) overlay.style.display = 'block';
 }
 
 function closeSideMenu() {
@@ -245,14 +290,10 @@ function changeScreen(screenId) {
 }
 
 async function updateUsers() {
-    try {
-        const onlineUsers = await fetchUsersFromApi();
-        if (Array.isArray(onlineUsers) && onlineUsers.length) {
-            AppState.users = onlineUsers;
-            return;
-        }
-    } catch (err) {
-        console.warn('Failed to load users from API:', err.message);
+    const onlineUsers = await fetchUsersFromApi();
+    if (Array.isArray(onlineUsers) && onlineUsers.length) {
+        AppState.users = onlineUsers;
+        return;
     }
 }
 
@@ -264,16 +305,62 @@ async function loadProfileById(id) {
         userScreen.innerHTML = `<div style="color:var(--text-secondary)">Error loading profile</div>`;
     };
     try {
-        const currentUser = AppState.currentUser || await AuthService.getCurrentUser();
-        if (currentUser) {
-            showUserProfile(currentUser);
-        } else {
+        await updateUsers();
+    } catch { }
+    try {
+        if (typeof AuthService === 'undefined' || !AuthService.isAuthenticated()) {
             throw new Error('User not authenticated');
         }
+        const user = getUserById(id);
+        if (user) showUserProfile(user);
+        else throw new Error('User not found');
     } catch (err) {
         showFallback();
-        console.warn('Failed to load user:', err.message);
+        console.warn('Failed to load user profile:', err.message);
     };
+}
+
+function showUserProfile(user = null) {
+    if (!user) return;
+    const userScreen = document.getElementById('userProfile');
+    const currentUser = getStoredUser();
+    const isCurrent = (currentUser.id && user.id && String(user.id) === String(currentUser.id));
+    user = {
+        name: user.name || 'Unknown',
+        level: Number(user.level) || 0,
+        xp: Number(user.xp) || 0,
+        streak: Number(user.streak) || 0,
+        achievements: user.achievements || [],
+        photo: user.photo || ''
+    };
+
+    userScreen.innerHTML = `
+        <div class="user-avatar">
+            ${createUserAvatar(user.photo, user.name)}
+        </div>
+        <h2 style="margin-top:16px;margin-bottom:4px;">${user.name}</h2>
+        <p style="color: var(--text-secondary); margin: 0 0 12px 0;">Level ${user.level}</p>
+        ${(isCurrent ? `<button onclick="openProfileEditor()" class="primary-button" style="margin-top:4px;">Edit Profile</button>` : '')}
+        
+        <div style="width: 100%; margin-top: 24px; background: rgba(99, 102, 241, 0.1); border-radius: 12px; padding: 15px;">
+            <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 8px 0;">Level Progress</p>
+            <div style="width: 100%; height: 8px; background: rgba(99, 102, 241, 0.2); border-radius: 10px; overflow: hidden;">
+                <div style="width: ${(user.xp / 5000) * 100}%; height: 100%; background: linear-gradient(90deg, var(--primary), var(--secondary)); transition: width 0.3s;"></div>
+            </div>
+            <p style="font-size: 12px; color: var(--text-secondary); margin: 8px 0 0 0;">${user.xp} / 5000 XP</p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; width: 100%;">
+            <div style="background: rgba(99, 102, 241, 0.1); border-radius: 12px; padding: 15px; text-align: center;">
+                <p style="font-size: 24px; margin: 0;">🔥 ${user.streak}</p>
+                <p style="font-size: 12px; color: var(--text-secondary); margin: 5px 0 0 0;">Day Streak</p>
+            </div>
+            <div style="background: rgba(236, 72, 153, 0.1); border-radius: 12px; padding: 15px; text-align: center;">
+                <p style="font-size: 24px; margin: 0;">🏆 ${user.achievements.length}</p>
+                <p style="font-size: 12px; color: var(--text-secondary); margin: 5px 0 0 0;">Achievements</p>
+            </div>
+        </div>
+    `;
 }
 
 function createUserAvatar(photoUrl, name, attrs = {}) {
@@ -328,49 +415,8 @@ function createUserAvatar(photoUrl, name, attrs = {}) {
     return img.outerHTML;
 }
 
-function showUserProfile(user = null) {
-    if (!user) return;
-    const userScreen = document.getElementById('userProfile');
-    const isCurrent = (AppState.userid && user.id && String(user.id) === String(AppState.userid));
-    user = {
-        name: user.name || 'Unknown',
-        level: Number(user.level) || 0,
-        xp: Number(user.xp) || 0,
-        streak: user.streak || 0,
-        achievements: user.achievements || [],
-        photo: user.photo || ''
-    };
-
-    userScreen.innerHTML = `
-        <div class="user-avatar">
-            ${createUserAvatar(user.photo, user.name)}
-        </div>
-        <h2 style="margin-top:16px;margin-bottom:4px;">${user.name}</h2>
-        <p style="color: var(--text-secondary); margin: 0 0 12px 0;">Level ${user.level}</p>
-        ${(isCurrent ? `<button onclick="openProfileEditor()" class="primary-button" style="margin-top:4px;">Edit Profile</button>` : '')}
-        
-        <div style="width: 100%; margin-top: 24px; background: rgba(99, 102, 241, 0.1); border-radius: 12px; padding: 15px;">
-            <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 8px 0;">Level Progress</p>
-            <div style="width: 100%; height: 8px; background: rgba(99, 102, 241, 0.2); border-radius: 10px; overflow: hidden;">
-                <div style="width: ${(user.xp / 5000) * 100}%; height: 100%; background: linear-gradient(90deg, var(--primary), var(--secondary)); transition: width 0.3s;"></div>
-            </div>
-            <p style="font-size: 12px; color: var(--text-secondary); margin: 8px 0 0 0;">${user.xp} / 5000 XP</p>
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; width: 100%;">
-            <div style="background: rgba(99, 102, 241, 0.1); border-radius: 12px; padding: 15px; text-align: center;">
-                <p style="font-size: 24px; margin: 0;">🔥 ${user.streak}</p>
-                <p style="font-size: 12px; color: var(--text-secondary); margin: 5px 0 0 0;">Day Streak</p>
-            </div>
-            <div style="background: rgba(236, 72, 153, 0.1); border-radius: 12px; padding: 15px; text-align: center;">
-                <p style="font-size: 24px; margin: 0;">🏆 ${user.achievements.length}</p>
-                <p style="font-size: 12px; color: var(--text-secondary); margin: 5px 0 0 0;">Achievements</p>
-            </div>
-        </div>
-    `;
-}
-
 async function loadLeaderboard() {
+    let errMsg;
     const leaderboardContent = document.getElementById('leaderboardContent');
     leaderboardContent.innerHTML = `
         <div style="display:flex;align-items:center;gap:12px;color:var(--text-secondary);">
@@ -380,16 +426,21 @@ async function loadLeaderboard() {
     `;
     try {
         await updateUsers();
+    } catch (err) {
+        errMsg = err.name === 'AbortError' ? 'Request timed out.' : '';
+        const msg = errMsg ? errMsg : err.message || 'Unknown error.';
+        console.warn(`Users fetch failed:`, msg);
+    }
+    try {
         const users = getUsersCache();
         if (users && Array.isArray(users)) {
             renderLeaderboard(users, leaderboardContent);
             return;
         }
     } catch (err) {
-        const msg = err.name === 'AbortError' ? 'Request timed out.' : err.message || 'Unknown error.';
-        console.warn(`Users fetch failed:`, msg);
+        console.warn(`Render leaderboard failed:`, err.message || 'Unknown error.');
     };
-    showLeaderboardMessage(leaderboardContent, "Unable to load leaderboard");
+    showLeaderboardMessage(leaderboardContent, errMsg);
 }
 
 function renderLeaderboard(list, container) {
@@ -407,9 +458,6 @@ function renderLeaderboard(list, container) {
     normalized.forEach((it, idx) => {
         it.rank = idx + 1;
         it.badge = computeBadge(it.rank);
-        if (it.id && it.id === AppState.userid) {
-            if (!it.name) it.name = 'You';
-        }
     });
 
     normalized.sort((a, b) => {
@@ -424,10 +472,10 @@ function renderLeaderboard(list, container) {
         link.addEventListener('click', (ev) => {
             ev.preventDefault();
             const idx = Number(link.getAttribute('data-profile-idx'));
-            const target = normalized[idx];
+            const target = normalized[idx].id || null;
             if (target) {
                 changeScreen('userProfile');
-                showUserProfile(target);
+                loadProfileById(target);
             }
         });
     });
@@ -440,6 +488,8 @@ function renderLeaderboard(list, container) {
 }
 
 function buildLeaderboardRow(user, idx) {
+    const currentUser = getStoredUser();
+    const isCurrent = (currentUser && currentUser.id && user.id && String(user.id) === String(currentUser.id));
     return `
         <div style="display: flex; align-items: center; gap: 12px; padding: 14px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(236, 72, 153, 0.05)); border-radius: 12px; margin-bottom: 10px; border: 1px solid rgba(148, 163, 184, 0.1); transition: all 0.3s;">
             <div style="font-size: 20px; width: 30px; text-align: center;">${user.badge || '•'}</div>
@@ -448,7 +498,7 @@ function buildLeaderboardRow(user, idx) {
             </div>
             <div style="flex: 1;">
                 <p style="margin: 0; font-weight: 600; color: var(--text-primary);">
-                    <a data-profile-idx="${idx}">${escapeHtml(user.name + (user.id === AppState.userid ? ' (You)' : ''))}</a>
+                    <a data-profile-idx="${idx}">${escapeHtml(user.name ? (user.name + (isCurrent ? ' (You)' : '')) : isCurrent ? 'You' : 'Unknown')}</a>
                 </p>
                 <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-secondary);">
                     <a data-profile-idx="${idx}">Level ${escapeHtml(user.level)} • ${Number(user.xp).toLocaleString()} pts</a>
@@ -467,34 +517,74 @@ function getUsersCache() {
 }
 
 function showLeaderboardMessage(container, message) {
-    const el = document.createElement('div');
-    el.style.cssText = 'padding:14px;text-align:center;color:var(--text-secondary);';
-    el.innerHTML = `<div style="margin-bottom:8px;">${escapeHtml(message)}</div>`;
+    container.innerHTML = '';
+
+    const card = document.createElement('div');
+    card.setAttribute('role', 'status');
+    card.style.cssText = `
+        max-width:720px;
+        margin:10px auto;
+        padding:18px 20px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+        border-radius:12px;
+        border:1px solid rgba(255,255,255,0.04);
+        box-shadow: 0 12px 30px rgba(2,6,23,0.6);
+        color: var(--text-primary);
+        font-family: inherit;
+    `;
+
+    const header = document.createElement('div');
+    header.style.cssText = 'display:flex;align-items:flex-start;gap:12px;';
+
+    const icon = document.createElement('div');
+    icon.innerHTML = '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="12" cy="12" r="11" stroke="rgba(255,255,255,0.06)" stroke-width="2" fill="rgba(236,72,153,0.12)"/><path d="M11 7h2v6h-2zM11 15h2v2h-2z" fill="#ffb6c1"/></svg>';
+    icon.style.cssText = 'flex:0 0 36px;';
+
+    const textWrap = document.createElement('div');
+    const title = document.createElement('div');
+    title.style.cssText = 'font-weight:700;margin-bottom:6px;color:var(--text-primary);font-size:15px;';
+    title.textContent = 'Unable to load leaderboard';
+
+    const msg = document.createElement('div');
+    msg.style.cssText = 'color:var(--text-secondary);font-size:13px;line-height:1.4;';
+    msg.innerHTML = escapeHtml(String(message || 'Please try again later.'));
+
+    textWrap.appendChild(title);
+    textWrap.appendChild(msg);
+    header.appendChild(icon);
+    header.appendChild(textWrap);
+
+    const actions = document.createElement('div');
+    actions.style.cssText = 'display:flex;gap:10px;justify-content:flex-end;margin-top:14px;';
 
     const retry = document.createElement('button');
-    retry.textContent = 'Retry';
     retry.className = 'primary-button';
-    retry.style.cssText = 'margin-right:8px;';
-    retry.addEventListener('click', () => {
-        loadLeaderboard();
+    retry.type = 'button';
+    retry.innerHTML = '<span style="display:inline-flex;align-items:center;gap:8px;"><div class="fa fa-refresh"></div>Retry</span>';
+    retry.style.cssText = 'padding:8px 12px;';
+    retry.addEventListener('click', async () => {
+        retry.disabled = true;
+        await loadLeaderboard();
     });
+
     const report = document.createElement('button');
-    report.textContent = 'Report';
     report.className = 'secondary-button';
+    report.type = 'button';
+    report.style.cssText = 'padding:8px 12px;';
+    report.innerHTML = '<span style="display:inline-flex;align-items:center;gap:8px;"><div class="fa fa-flag"></div>Report</span>';
     report.addEventListener('click', () => {
         const subject = 'Leaderboard load error';
         const body = `I could not load the leaderboard on ${location.href} at ${new Date().toLocaleString()}.
 \n\nPlease include any steps to reproduce and your browser/OS.`;
         showReportModal('samsung22vs23@gmail.com', subject, body);
     });
-    const wrapper = document.createElement('div');
-    wrapper.style.marginTop = '8px';
-    wrapper.appendChild(retry);
-    wrapper.appendChild(report);
-    el.appendChild(wrapper);
 
-    container.innerHTML = '';
-    container.appendChild(el);
+    actions.appendChild(report);
+    actions.appendChild(retry);
+
+    card.appendChild(header);
+    card.appendChild(actions);
+    container.appendChild(card);
 }
 
 function escapeHtml(str) {
@@ -533,7 +623,8 @@ function showReportModal(email, subject, body) {
 
     const openMailBtn = document.createElement('button');
     openMailBtn.textContent = 'Open mail client';
-    openMailBtn.style.cssText = 'padding:8px 12px;border-radius:8px;border:0;background:var(--primary);color:white;cursor:pointer;';
+    openMailBtn.className = 'primary-button';
+    openMailBtn.style.cssText = 'cursor:pointer;';
     openMailBtn.addEventListener('click', () => {
         const subjectEnc = encodeURIComponent(subject);
         const bodyEnc = encodeURIComponent(body);
@@ -550,7 +641,7 @@ function showReportModal(email, subject, body) {
 
     const copyBtn = document.createElement('button');
     copyBtn.textContent = 'Copy report';
-    copyBtn.style.cssText = 'padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:var(--text-primary);cursor:pointer;';
+    copyBtn.className = 'secondary-button';
     copyBtn.addEventListener('click', async () => {
         try {
             await navigator.clipboard.writeText(textarea.value);
@@ -558,11 +649,12 @@ function showReportModal(email, subject, body) {
             textarea.select();
             document.execCommand('copy');
         }
+        showNotification('Report copied to clipboard');
     });
 
     const closeBtn = document.createElement('button');
     closeBtn.textContent = 'Close';
-    closeBtn.style.cssText = 'padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:var(--text-secondary);cursor:pointer;';
+    closeBtn.className = 'secondary-button';
     closeBtn.addEventListener('click', () => overlay.remove());
 
     btnRow.appendChild(copyBtn);
@@ -587,7 +679,7 @@ function getUserById(id) {
 }
 
 function createInitialsAvatar(name) {
-    const displayName = (name || 'User').trim();
+    const displayName = (name || 'Unknown').trim();
     const words = displayName.split(' ').filter(Boolean);
 
     let initials;
@@ -625,26 +717,6 @@ function updateProfileImage(user) {
             if (profileIcon) profileIcon.style.display = 'block';
         }
     };
-}
-
-
-function displayUserData() {
-    const currentUser = AppState.currentUser || AuthService.getStoredUser();
-    if (currentUser) {
-        const streakEl = document.getElementById('streakCount');
-        if (streakEl) streakEl.textContent = currentUser.streak || 0;
-        const livesEl = document.getElementById('livesCount');
-        if (livesEl) livesEl.textContent = currentUser.lives || AppState.lives || 5;
-    } else {
-        const livesEl = document.getElementById('livesCount');
-        if (livesEl) livesEl.textContent = AppState.lives || 0;
-    }
-
-    const notifEl = document.getElementById('notifCount');
-    if (notifEl) {
-        if (AppState.notifications.length >= 1) notifEl.textContent = AppState.notifications.length || 0;
-        else notifEl.style.display = 'none';
-    }
 }
 
 function showNotification(message) {
@@ -727,7 +799,9 @@ function filterCodes(filterType) {
             });
             break;
         case 'myCode':
-            codes = codes.filter(c => c.userid === AppState.userid).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            const currentUser = getStoredUser();
+            if (!currentUser || !currentUser.id) return [];
+            codes = codes.filter(c => c.userid === currentUser.id).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
             break;
         case 'recent':
             codes = codes.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -792,7 +866,8 @@ function displayCodes(filterType) {
 }
 
 function buildCodeCard(code) {
-    const isMyCode = code.userid === AppState.userid;
+    const currentUser = getStoredUser();
+    const isMyCode = currentUser && currentUser.id && code.userid === currentUser.id;
     const user = getUserById(code.userid);
     if (!user) return '';
     return `
@@ -937,7 +1012,7 @@ async function publishCode() {
 async function createCodeOnServer(title, language, description, code, publishBtn) {
     try {
         const response = await fetch('/api/codes', {
-            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${AppState.token}` },
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
             body: JSON.stringify({ title, language, description, code })
         });
 
@@ -966,7 +1041,7 @@ async function createCodeOnServer(title, language, description, code, publishBtn
 async function updateCodeOnServer(codeId, title, language, description, code, publishBtn) {
     try {
         const response = await fetch(`/api/codes/${codeId}`, {
-            method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${AppState.token}` },
+            method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
             body: JSON.stringify({ title, language, description, code })
         });
 
@@ -995,7 +1070,7 @@ async function updateCodeOnServer(codeId, title, language, description, code, pu
 async function deleteCodeOnServer(codeId) {
     try {
         const response = await fetch(`/api/codes/${codeId}`, {
-            method: 'DELETE', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${AppState.token}` }
+            method: 'DELETE', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` }
         });
 
         if (!response.ok) {

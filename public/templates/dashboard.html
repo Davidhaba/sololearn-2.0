@@ -7,7 +7,10 @@
     <title>SoloLearn 2.0: Modern Mobile Version</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
         crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <link rel="stylesheet" href="styles.css">
+    <script>
+        const serv_static = '../static/';
+        document.head.appendChild(Object.assign(document.createElement('link'), { rel: 'stylesheet', href: serv_static + 'styles.css' }));
+    </script>
 </head>
 
 <body>
@@ -108,7 +111,7 @@
         </div>
 
         <div id="userProfile" class="appScreen">
-            <p style="font-size: 14px; margin-top: 20px; color: var(--text-secondary);">Loading...</p>
+            <p style="font-size: 14px; margin-top: 20px; color: var(--text-secondary);">Nothing here.</p>
         </div>
 
         <div id="codeEditor" class="appScreen">
@@ -168,15 +171,15 @@
             <div style="display:flex;flex-direction:column;height:100%;gap:16px;padding-bottom:20px;">
                 <div>
                     <label
-                        style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">Full
-                        name</label>
+                        style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">
+                        Full name</label>
                     <input type="text" id="profileEditorName" placeholder="Your name"
                         style="width:100%;padding:12px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);border-radius:8px;color:var(--text-primary);">
                 </div>
                 <div>
                     <label
-                        style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">Photo
-                        URL (optional)</label>
+                        style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">
+                        Photo URL (optional)</label>
                     <input type="text" id="profileEditorPhoto" placeholder="https://..."
                         style="width:100%;padding:12px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);border-radius:8px;color:var(--text-primary);">
                 </div>
@@ -220,19 +223,19 @@
     </div>
 
     </div>
-    <script src="authService.js"></script>
-    <script src="router.js"></script>
     <script>
         (async () => {
-            const isAuth = await AuthService.isAuthenticated();
-            if (!isAuth) {
-                window.location.href = 'auth';
-                return;
+            for (const f of ['authService.js', 'router.js', 'index.js']) {
+                await new Promise((r, e) => {
+                    const s = document.createElement('script');
+                    s.src = serv_static + f;
+                    s.onload = () => r(s);
+                    s.onerror = () => e();
+                    document.head.appendChild(s);
+                });
             }
-
-            const script = document.createElement('script');
-            script.src = 'index.js';
-            document.body.appendChild(script);
+            if (document.readyState === 'loading') await new Promise(r => document.addEventListener('DOMContentLoaded', r));
+            await Router.init();
         })();
     </script>
     <script>
@@ -256,6 +259,7 @@
                 </div>
             `;
             modal.style.display = 'flex';
+            document.querySelector('#logoutModal button').focus();
         }
 
         function confirmLogout() {
@@ -263,7 +267,7 @@
                 <div onClick="cancelLogout()" style="cursor:pointer; font-size:14px; color: white; float: right; line-height: 1;">X</div><div style="font-size:48px; margin: 16px;">👋</div>
             </div>`;
             AuthService.logout();
-            Router.redirectTo('auth');
+            Router.redirectTo('/auth');
         }
 
         function cancelLogout() {
