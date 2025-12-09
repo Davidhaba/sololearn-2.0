@@ -544,7 +544,8 @@
             btn.disabled = true;
 
             try {
-                await AuthService.login(email, password);
+                const data = await AuthService.login(email, password);
+                if (!data.user) throw new Error('Invalid response from server');
                 showMessage('loginMessage', '✅ Login successful! Redirecting...', 'success');
                 setTimeout(() => {
                     Router.redirectTo('dashboard');

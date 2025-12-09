@@ -13,6 +13,8 @@ function getToken() {
 function getStoredUser() {
     const user = AppState.currentUser || (typeof AuthService !== 'undefined') ? AuthService.getStoredUser() : null || null;
     console.log(user);
+    console.log(AppState.currentUser);
+    console.log(AuthService?.getStoredUser());
     return user;
 }
 

@@ -102,11 +102,11 @@ const AuthService = (() => {
         getStoredUser: () => {
             let user;
             try {
-                user = JSON.parse(localStorage.getItem('user'));
+                user = JSON.parse(localStorage.getItem('user')) || currentUser || null;
             } catch {
-                user = currentUser;
+                user = currentUser || null;
             }
-            return user ? user : null;
+            return user;
         }
     };
 })();
