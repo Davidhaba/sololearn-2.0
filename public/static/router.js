@@ -27,7 +27,6 @@ const Router = (() => {
         const currentPage = window.location.pathname.split('/').pop() || '/';
 
         if (!isAuth && currentPage !== "auth") {
-            console.log('🔐 Redirecting to auth...');
             redirectTo('auth');
         } else if (isAuth && currentPage !== "dashboard") {
             console.log('✅ Already logged in, redirecting to dashboard...');
