@@ -14,29 +14,171 @@
 </head>
 
 <body>
-    <div id="droptopMenu">
-        <div id="topLeft">
-            <button class="topButton" id="menuBtn" title="Menu">
-                <i class="fas fa-bars"></i>
-                <div class="hover-el"></div>
-            </button>
-            <p id="droptopTitle">Home</p>
+    <div id="dashboardContainer">
+        <div id="droptopMenu">
+            <div id="topLeft">
+                <button class="topButton" id="menuBtn" title="Menu">
+                    <i class="fas fa-bars"></i>
+                    <div class="hover-el"></div>
+                </button>
+                <p id="droptopTitle">Home</p>
+            </div>
+            <div id="topRight">
+                <button class="topButton" id="favBtn" title="Lives">
+                    <i class="fas fa-heart"></i>
+                    <div id="livesCount">0</div>
+                    <div class="hover-el"></div>
+                </button>
+                <button class="topButton extend" id="streakBtn" title="Streak">
+                    <i class="fas fa-fire"></i>
+                    <div id="streakCount">0</div>
+                    <div class="hover-el"></div>
+                </button>
+                <button class="topButton" id="notifBtn" title="Notifications">
+                    <i class="fas fa-bell"></i>
+                    <div class="text-danger" style="display: none;" id="notifCount">0</div>
+                    <div class="hover-el"></div>
+                </button>
+            </div>
         </div>
-        <div id="topRight">
-            <button class="topButton" id="favBtn" title="Lives">
-                <i class="fas fa-heart"></i>
-                <div id="livesCount">0</div>
-                <div class="hover-el"></div>
+        <div id="app">
+            <div id="main" class="appScreen active">
+                <h1>Learn to Code</h1>
+                <p>Choose your favorite programming language and master it step by step</p>
+                <p style="font-size: 14px; margin: 0; color: var(--text-secondary);">Coming soon!</p>
+            </div>
+
+            <div id="leaders" class="appScreen">
+                <p>Compete with learners worldwide and climb the rankings</p>
+                <div id="leaderboardContent" style="margin-top: 30px;"></div>
+            </div>
+
+            <div id="code" class="appScreen">
+                <div id="codeFilters" style="display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap;">
+                    <button class="filterBtn active" data-filter="trending">
+                        <i class="fas fa-fire"></i> Popular Today
+                    </button>
+                    <button class="filterBtn" data-filter="myCode">
+                        <i class="fas fa-code"></i> My Codes
+                    </button>
+                    <button class="filterBtn" data-filter="recent">
+                        <i class="fas fa-clock"></i> Recent
+                    </button>
+                    <button class="filterBtn" data-filter="mostLiked">
+                        <i class="fas fa-heart"></i> Most Liked
+                    </button>
+                </div>
+                <div id="codeContent"></div>
+                <button id="createCodeBtn" class="createCodeBtn" title="Create new code">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+
+            <div id="userProfile" class="appScreen">
+                <p style="font-size: 14px; margin-top: 20px; color: var(--text-secondary);">Nothing here.</p>
+            </div>
+
+            <div id="codeEditor" class="appScreen">
+                <div style="display: flex; flex-direction: column; height: 100%; gap: 16px; padding-bottom: 20px;">
+                    <div style="display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 200px;">
+                            <label
+                                style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600;">
+                                Code Title</label>
+                            <input type="text" id="editorTitle" placeholder="My awesome code"
+                                style="width: 100%; padding: 12px; background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px; color: var(--text-primary); font-family: inherit; font-size: 14px;">
+                        </div>
+                        <div style="flex: 1; min-width: 150px;">
+                            <label
+                                style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600;">Language</label>
+                            <select id="editorLanguage"
+                                style="width: 100%; padding: 12px; background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px; color: var(--text-primary); font-family: inherit; font-size: 14px;">
+                                <option value="SelectLanguage" disabled selected>Select Language</option>
+                                <option value="JavaScript">JavaScript</option>
+                                <option value="Python">Python</option>
+                                <option value="Java">Java</option>
+                                <option value="C++">C++</option>
+                                <option value="C#">C#</option>
+                                <option value="PHP">PHP</option>
+                                <option value="Ruby">Ruby</option>
+                                <option value="Go">Go</option>
+                                <option value="Rust">Rust</option>
+                                <option value="TypeScript">TypeScript</option>
+                                <option value="HTML">HTML</option>
+                                <option value="CSS">CSS</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label
+                            style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600;">Description</label>
+                        <input type="text" id="editorDescription" placeholder="What does this code do?"
+                            style="width: 100%; padding: 12px; background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px; color: var(--text-primary); font-family: inherit; font-size: 14px;">
+                    </div>
+                    <div style="flex: 1; display: flex; flex-direction: column; min-height: 300px;">
+                        <label
+                            style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600;">Code</label>
+                        <textarea id="editorContent" placeholder="Paste or write your code here..."
+                            style="flex: 1; padding: 14px; background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px; color: var(--text-primary); font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; font-size: 13px; resize: none; line-height: 1.5;"></textarea>
+                    </div>
+                    <div style="display: flex; gap: 12px;">
+                        <button id="editorPublishBtn" class="primary-button" style="flex: 1;">
+                            <i class="fas fa-paper-plane"></i> Publish Code</button>
+                        <button id="editorDiscardBtn" class="secondary-button"
+                            style="flex: 0 1; border-color: rgba(239, 68, 68, 0.3); color: var(--danger);">
+                            <i class="fas fa-times"></i> Discard</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="profileEditor" class="appScreen">
+                <div style="display:flex;flex-direction:column;height:100%;gap:16px;padding-bottom:20px;">
+                    <div>
+                        <label
+                            style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">
+                            Full name</label>
+                        <input type="text" id="profileEditorName" placeholder="Your name"
+                            style="width:100%;padding:12px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);border-radius:8px;color:var(--text-primary);">
+                    </div>
+                    <div>
+                        <label
+                            style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">
+                            Photo URL (optional)</label>
+                        <input type="text" id="profileEditorPhoto" placeholder="https://..."
+                            style="width:100%;padding:12px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);border-radius:8px;color:var(--text-primary);">
+                    </div>
+
+                    <div style="display:flex;gap:12px;margin-top:auto;">
+                        <button id="profileSaveBtn" class="primary-button" style="flex:1;"><i
+                                class="fas fa-cloud-arrow-up"></i> Save</button>
+                        <button id="profileCancelBtn" class="secondary-button" style="flex:1;"><i
+                                class="fas fa-rotate-left"></i> Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="dropdownMenu">
+            <button class="downButton active" data-screen="main" data-open-screen="main" title="Home">
+                <i class="fas fa-home"></i>
+                <div class="text-danger">Home</div>
             </button>
-            <button class="topButton extend" id="streakBtn" title="Streak">
-                <i class="fas fa-fire"></i>
-                <div id="streakCount">0</div>
-                <div class="hover-el"></div>
+            <button class="downButton" data-screen="leaders" data-open-screen="leaders" title="Leaderboard">
+                <i class="fas fa-trophy"></i>
+                <div class="text-danger">Leaders</div>
             </button>
-            <button class="topButton" id="notifBtn" title="Notifications">
-                <i class="fas fa-bell"></i>
-                <div class="text-danger" style="display: none;" id="notifCount">0</div>
-                <div class="hover-el"></div>
+            <button class="downButton" data-screen="code" data-open-screen="code" title="Code">
+                <i class="fas fa-code"></i>
+                <div class="text-danger">Code</div>
+            </button>
+            <button class="downButton" id="profileBtn" data-screen="userProfile" data-open-screen="userProfile"
+                title="Profile" style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                <img id="profileImage" src="" alt="Photo"
+                    style="display: none; width: 20px; height: 20px; border-radius: 50%; object-fit: cover;">
+                <i class="fas fa-user" id="profileIcon" style="font-size: 20px;"></i>
+                <div class="text-danger" id="profileName"
+                    style="font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60px;">
+                    Profile</div>
             </button>
         </div>
     </div>
@@ -76,152 +218,10 @@
         </div>
     </div>
 
-    <div id="app">
-        <div id="main" class="appScreen active">
-            <h1>Learn to Code</h1>
-            <p>Choose your favorite programming language and master it step by step</p>
-            <p style="font-size: 14px; margin: 0; color: var(--text-secondary);">Coming soon!</p>
-        </div>
-
-        <div id="leaders" class="appScreen">
-            <p>Compete with learners worldwide and climb the rankings</p>
-            <div id="leaderboardContent" style="margin-top: 30px;"></div>
-        </div>
-
-        <div id="code" class="appScreen">
-            <div id="codeFilters" style="display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap;">
-                <button class="filterBtn active" data-filter="trending">
-                    <i class="fas fa-fire"></i> Popular Today
-                </button>
-                <button class="filterBtn" data-filter="myCode">
-                    <i class="fas fa-code"></i> My Codes
-                </button>
-                <button class="filterBtn" data-filter="recent">
-                    <i class="fas fa-clock"></i> Recent
-                </button>
-                <button class="filterBtn" data-filter="mostLiked">
-                    <i class="fas fa-heart"></i> Most Liked
-                </button>
-            </div>
-            <div id="codeContent"></div>
-            <button id="createCodeBtn" class="createCodeBtn" title="Create new code">
-                <i class="fas fa-plus"></i>
-            </button>
-        </div>
-
-        <div id="userProfile" class="appScreen">
-            <p style="font-size: 14px; margin-top: 20px; color: var(--text-secondary);">Nothing here.</p>
-        </div>
-
-        <div id="codeEditor" class="appScreen">
-            <div style="display: flex; flex-direction: column; height: 100%; gap: 16px; padding-bottom: 20px;">
-                <div style="display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap;">
-                    <div style="flex: 1; min-width: 200px;">
-                        <label
-                            style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600;">
-                            Code Title</label>
-                        <input type="text" id="editorTitle" placeholder="My awesome code"
-                            style="width: 100%; padding: 12px; background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px; color: var(--text-primary); font-family: inherit; font-size: 14px;">
-                    </div>
-                    <div style="flex: 1; min-width: 150px;">
-                        <label
-                            style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600;">Language</label>
-                        <select id="editorLanguage"
-                            style="width: 100%; padding: 12px; background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px; color: var(--text-primary); font-family: inherit; font-size: 14px;">
-                            <option value="SelectLanguage" disabled selected>Select Language</option>
-                            <option value="JavaScript">JavaScript</option>
-                            <option value="Python">Python</option>
-                            <option value="Java">Java</option>
-                            <option value="C++">C++</option>
-                            <option value="C#">C#</option>
-                            <option value="PHP">PHP</option>
-                            <option value="Ruby">Ruby</option>
-                            <option value="Go">Go</option>
-                            <option value="Rust">Rust</option>
-                            <option value="TypeScript">TypeScript</option>
-                            <option value="HTML">HTML</option>
-                            <option value="CSS">CSS</option>
-                        </select>
-                    </div>
-                </div>
-                <div>
-                    <label
-                        style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600;">Description</label>
-                    <input type="text" id="editorDescription" placeholder="What does this code do?"
-                        style="width: 100%; padding: 12px; background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px; color: var(--text-primary); font-family: inherit; font-size: 14px;">
-                </div>
-                <div style="flex: 1; display: flex; flex-direction: column; min-height: 300px;">
-                    <label
-                        style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600;">Code</label>
-                    <textarea id="editorContent" placeholder="Paste or write your code here..."
-                        style="flex: 1; padding: 14px; background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px; color: var(--text-primary); font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; font-size: 13px; resize: none; line-height: 1.5;"></textarea>
-                </div>
-                <div style="display: flex; gap: 12px;">
-                    <button id="editorPublishBtn" class="primary-button" style="flex: 1;">
-                        <i class="fas fa-paper-plane"></i> Publish Code</button>
-                    <button id="editorDiscardBtn" class="secondary-button"
-                        style="flex: 0 1; border-color: rgba(239, 68, 68, 0.3); color: var(--danger);">
-                        <i class="fas fa-times"></i> Discard</button>
-                </div>
-            </div>
-        </div>
-
-        <div id="profileEditor" class="appScreen">
-            <div style="display:flex;flex-direction:column;height:100%;gap:16px;padding-bottom:20px;">
-                <div>
-                    <label
-                        style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">
-                        Full name</label>
-                    <input type="text" id="profileEditorName" placeholder="Your name"
-                        style="width:100%;padding:12px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);border-radius:8px;color:var(--text-primary);">
-                </div>
-                <div>
-                    <label
-                        style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">
-                        Photo URL (optional)</label>
-                    <input type="text" id="profileEditorPhoto" placeholder="https://..."
-                        style="width:100%;padding:12px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);border-radius:8px;color:var(--text-primary);">
-                </div>
-
-                <div style="display:flex;gap:12px;margin-top:auto;">
-                    <button id="profileSaveBtn" class="primary-button" style="flex:1;"><i
-                            class="fas fa-cloud-arrow-up"></i> Save</button>
-                    <button id="profileCancelBtn" class="secondary-button" style="flex:1;"><i
-                            class="fas fa-rotate-left"></i> Cancel</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="dropdownMenu">
-        <button class="downButton active" data-screen="main" data-open-screen="main" title="Home">
-            <i class="fas fa-home"></i>
-            <div class="text-danger">Home</div>
-        </button>
-        <button class="downButton" data-screen="leaders" data-open-screen="leaders" title="Leaderboard">
-            <i class="fas fa-trophy"></i>
-            <div class="text-danger">Leaders</div>
-        </button>
-        <button class="downButton" data-screen="code" data-open-screen="code" title="Code">
-            <i class="fas fa-code"></i>
-            <div class="text-danger">Code</div>
-        </button>
-        <button class="downButton" id="profileBtn" data-screen="userProfile" data-open-screen="userProfile"
-            title="Profile" style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-            <img id="profileImage" src="" alt="Photo"
-                style="display: none; width: 20px; height: 20px; border-radius: 50%; object-fit: cover;">
-            <i class="fas fa-user" id="profileIcon" style="font-size: 20px;"></i>
-            <div class="text-danger" id="profileName"
-                style="font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60px;">
-                Profile</div>
-        </button>
-    </div>
-
     <div id="logoutModal"
         style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;align-items:center;justify-content:center;">
     </div>
 
-    </div>
     <script>
         (async () => {
             for (const f of ['authService.js', 'router.js', 'index.js']) {
@@ -234,7 +234,7 @@
                 });
             }
             if (document.readyState === 'loading') await new Promise(r => document.addEventListener('DOMContentLoaded', r));
-            await Router.init();
+            //await Router.init();
         })();
     </script>
     <script>
