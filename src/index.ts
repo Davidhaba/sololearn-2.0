@@ -148,8 +148,10 @@ app.get('/auth/me', authMiddleware, async (req, res) => {
         }
         const userData = user.data() as User;
         res.json({
-            id: user.id,
-            ...userData
+            user: {
+                id: user.id,
+                ...userData
+            }
         });
     } catch (err) {
         console.error('GET /auth/me error:', err);
@@ -171,14 +173,14 @@ app.put('/auth/me', authMiddleware, async (req, res) => {
         if (!userDoc.exists) return res.status(404).json({ error: 'User not found' });
 
         const updates: Partial<User> = {};
-        if (name) updates.name = name.trim();
+        if (name) updates.name = name.trim() || 'Unknown';
         if (photo) updates.photo = photo.trim() || '';
         updates.updatedAt = new Date().toISOString();
 
         await userRef.update(updates);
 
         const updated = await userRef.get();
-        res.json({ id: updated.id, ...updated.data() as User });
+        res.json({ user: { id: updated.id, ...updated.data() as User } });
     } catch (err) {
         console.error('PUT /auth/me error:', err);
         res.status(500).json({ error: err.message });

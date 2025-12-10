@@ -295,18 +295,18 @@ async function saveProfileChanges(btn) {
         btn.disabled = false;
         if (!res.ok) throw new Error(data.error || `Status ${res.status}`);
 
-        AppState.currentUser = data;
-        updateProfileImage(data);
+        AppState.currentUser = data.user || AppState.currentUser;
+        updateProfileImage(AppState.currentUser);
         const sideName = document.getElementById('sideMenuName');
-        if (sideName) sideName.textContent = data.name || 'User';
+        if (sideName) sideName.textContent = AppState.currentUser?.name || 'Unknown';
         const sideAvatar = document.getElementById('sideMenuAvatar');
-        if (sideAvatar) sideAvatar.src = data.photo || createInitialsAvatar(data.name);
+        if (sideAvatar) sideAvatar.src = AppState.currentUser?.photo || createInitialsAvatar(AppState.currentUser?.name || 'Unknown');
 
         try { await updateUsers(); } catch (e) { }
 
         showNotification('Profile updated');
         changeScreen('userProfile');
-        showUserProfile(data);
+        showUserProfile(AppState.currentUser);
     } catch (err) {
         btn.disabled = false;
         console.error('Failed to save profile:', err);

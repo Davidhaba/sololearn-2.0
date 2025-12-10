@@ -63,11 +63,12 @@ const AuthService = (() => {
                     currentUser = null;
                     throw new Error(data.error || 'Failed to fetch user');
                 } else {
+                    const userObj = (data && data.user) ? data.user : data;
                     try {
-                        localStorage.setItem('user', JSON.stringify(data.user));
+                        localStorage.setItem('user', JSON.stringify(userObj));
                     } catch { }
-                    currentUser = data.user;
-                    return data;
+                    currentUser = userObj;
+                    return userObj;
                 }
             } catch (err) {
                 console.error('getCurrentUser error:', err);
