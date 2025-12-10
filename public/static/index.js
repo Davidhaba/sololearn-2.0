@@ -11,9 +11,12 @@ function getToken() {
 }
 
 function getAuthStoredUser() {
-    if (AppState.currentUser) return AppState.currentUser;
+    if (AppState.currentUser && AppState.currentUser.id) return AppState.currentUser;
     const authStored = typeof AuthService?.getStoredUser === 'function' ? AuthService.getStoredUser() : null;
-    if (authStored) return authStored;
+    if (authStored && authStored.id) {
+        AppState.currentUser = authStored;
+        return authStored;
+    }
     return null;
 }
 
@@ -34,12 +37,20 @@ async function fetchUsersFromApi() {
 async function initApp() {
     try {
         const currentUser = await AuthService?.getCurrentUser() || null;
-        AppState.currentUser = currentUser;
-        updateProfileImage(currentUser);
-    } catch { }
+        if (currentUser && currentUser.user) {
+            AppState.currentUser = currentUser.user;
+        } else if (currentUser) {
+            AppState.currentUser = currentUser;
+        }
+        updateProfileImage(AppState.currentUser);
+    } catch (e) {
+        console.warn('Failed to get current user:', e);
+    }
     try {
         await updateUsers();
-    } catch { }
+    } catch (e) {
+        console.warn('Failed to update users:', e);
+    }
     initializeEventListeners();
     initializeCodeTab();
     changeScreen('main');
@@ -233,8 +244,10 @@ async function saveProfileChanges(btn) {
 
 function cancelProfileEdit() {
     changeScreen('userProfile');
-    const current = getAuthStoredUser().id || null;
-    if (current) loadProfileById(current);
+    const currentUser = getAuthStoredUser();
+    if (currentUser && currentUser.id) {
+        loadProfileById(currentUser.id);
+    }
 }
 
 function toggleSideMenu() {
@@ -252,11 +265,12 @@ function openSideMenu() {
     const avatar = document.getElementById('sideMenuAvatar');
     const nameEl = document.getElementById('sideMenuName');
     const user = getAuthStoredUser();
-    if (nameEl) nameEl.textContent = user?.name || 'Unknown';
-    if (avatar) avatar.outerHTML = createUserAvatar(user?.photo || null, user?.name || 'Unknown', avatar.attributes);
+    
+    if (nameEl) nameEl.textContent = user.name || 'Unknown';
+    if (avatar) avatar.outerHTML = createUserAvatar(user.photo || null, user.name || 'Unknown', avatar.attributes);
     if (overlay) {
         overlay.style.display = 'block';
-        overlay.querySelector('#sideMenuProfile').focus();
+        overlay.querySelector('#sideMenuProfile')?.focus();
     }
 }
 
@@ -304,7 +318,7 @@ async function updateUsers() {
     throw new Error('No users data received from API');
 }
 
-async function loadProfileById(id) {
+async function loadProfileById(id = null) {
     const userScreen = document.getElementById('userProfile');
     userScreen.innerHTML = `<div style="color:var(--text-secondary)"><i class="fas fa-spinner fa-spin"></i> Loading profile...</div>`;
 
@@ -313,27 +327,29 @@ async function loadProfileById(id) {
     };
     try {
         await updateUsers();
-    } catch (e) {
-        console.warn('Failed to update users:', e.message);
-    }
+    } catch { }
     try {
-        if (typeof AuthService === 'undefined' || !AuthService.isAuthenticated()) {
-            throw new Error('User not authenticated');
+        if (!id) {
+            throw new Error('Invalid user ID');
         }
-        const user = getUserById(id);
-        if (user) showUserProfile(user);
-        else throw new Error('User not found');
+        let user = getUserById(id);
+        if (user) {
+            showUserProfile(user);
+            return;
+        } else {
+            throw new Error('User not found');
+        }
     } catch (err) {
         showFallback();
         console.warn('Failed to load user profile:', err.message);
-    };
+    }
 }
 
 function showUserProfile(user = null) {
     if (!user) return;
     const userScreen = document.getElementById('userProfile');
     const currentUser = getAuthStoredUser();
-    const isCurrent = (currentUser.id && user.id && String(user.id) === String(currentUser.id));
+    const isCurrent = currentUser && currentUser.id && user.id && String(user.id) === String(currentUser.id);
     user = {
         name: user.name || 'Unknown',
         level: Number(user.level) || 0,

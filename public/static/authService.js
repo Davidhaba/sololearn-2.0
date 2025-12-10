@@ -65,7 +65,7 @@ const AuthService = (() => {
                     localStorage.removeItem('user');
                     authToken = null;
                     currentUser = null;
-                    return null;
+                    throw new Error(data.error || 'Failed to fetch user');
                 } else {
                     try {
                         localStorage.setItem('user', JSON.stringify(data.user));
