@@ -3,11 +3,41 @@ const AppState = {
     users: null,
     currentUser: null,
     notifications: [],
-    currentEditingCode: null
+    currentEditingCode: null,
+    consoleMessages: []
 };
 
 function getToken() {
     return (typeof AuthService !== 'undefined') ? AuthService.getToken() || null : null;
+}
+
+(function captureConsole() {
+    if (typeof window === 'undefined' || !window.console) return;
+    const levels = ['log', 'info', 'warn', 'error', 'debug'];
+    levels.forEach(level => {
+        const orig = console[level] || console.log;
+        console[level] = function (...args) {
+            try {
+                const text = args.map(a => {
+                    try { return (typeof a === 'object') ? JSON.stringify(a) : String(a); } catch { return String(a); }
+                }).join(' ');
+                AppState.consoleMessages = AppState.consoleMessages || [];
+                AppState.consoleMessages.push({ level, text, timestamp: Date.now() });
+                updateConsoleCount();
+            } catch (e) { /* ignore capture errors */ }
+            try { orig.apply(console, args); } catch (e) { /* swallow */ }
+        };
+    });
+})();
+
+function updateConsoleCount() {
+    try {
+        const btn = document.getElementById('errorsCount');
+        if (!btn) return;
+        const msgs = Array.isArray(AppState.consoleMessages) ? AppState.consoleMessages : [];
+        const errs = msgs.filter(m => m.level === 'error' || m.level === 'warn');
+        btn.textContent = String(errs.length || msgs.length || 0);
+    } catch { }
 }
 
 function getAuthStoredUser() {
@@ -134,6 +164,10 @@ function initializeEventListeners() {
 
     const closeBtn = document.getElementById('closeSideMenu');
     if (closeBtn) closeBtn.addEventListener('click', closeSideMenu);
+    const consoleBtn = document.getElementById('consoleBtn');
+    if (consoleBtn) consoleBtn.addEventListener('click', (e) => {
+        openConsoleModal();
+    });
     const menuOverlay = document.getElementById('sideMenuOverlay');
     if (menuOverlay) menuOverlay.addEventListener('click', (e) => {
         if (e.target === menuOverlay) closeSideMenu();
@@ -175,6 +209,44 @@ function initializeEventListeners() {
     const profileCancelBtn = document.getElementById('profileCancelBtn');
     if (profileSaveBtn) profileSaveBtn.addEventListener('click', (e) => saveProfileChanges(e.target));
     if (profileCancelBtn) profileCancelBtn.addEventListener('click', cancelProfileEdit);
+}
+
+function openConsoleModal() {
+    const modal = document.getElementById('consoleModal');
+    const list = document.getElementById('consoleMessages');
+    if (!modal || !list) return;
+    renderConsoleMessages();
+    modal.style.display = 'flex';
+    document.getElementById('closeConsoleBtn')?.focus();
+    document.getElementById('closeConsoleBtn')?.addEventListener('click', closeConsoleModal);
+    document.getElementById('clearConsoleBtn')?.addEventListener('click', clearConsoleMessages);
+}
+
+function closeConsoleModal() {
+    const modal = document.getElementById('consoleModal');
+    if (modal) modal.style.display = 'none';
+}
+
+function clearConsoleMessages() {
+    AppState.consoleMessages = [];
+    updateConsoleCount();
+    renderConsoleMessages();
+}
+
+function renderConsoleMessages() {
+    const list = document.getElementById('consoleMessages');
+    if (!list) return;
+    const msgs = Array.isArray(AppState.consoleMessages) && AppState.consoleMessages.length ? AppState.consoleMessages : [];
+    if (msgs.length === 0) {
+        list.innerHTML = '<div style="color:var(--text-secondary);">No messages yet.</div>';
+        return;
+    }
+    list.innerHTML = msgs.map(m => {
+        const time = new Date(m.timestamp).toLocaleTimeString();
+        const color = m.level === 'error' ? '#ff6b6b' : (m.level === 'warn' ? '#f59e0b' : 'var(--text-primary)');
+        return `<div style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.02);"><div style=\"font-size:11px;color:${color};font-weight:600;\">[${m.level}] ${time}</div><div style=\"font-family:monospace;white-space:pre-wrap;color:var(--text-primary);\">${escapeHtml(String(m.text))}</div></div>`;
+    }).join('');
+    list.scrollTop = list.scrollHeight;
 }
 
 function openProfileEditor() {
@@ -265,9 +337,9 @@ function openSideMenu() {
     const avatar = document.getElementById('sideMenuAvatar');
     const nameEl = document.getElementById('sideMenuName');
     const user = getAuthStoredUser();
-    
-    if (nameEl) nameEl.textContent = user.name || 'Unknown';
-    if (avatar) avatar.outerHTML = createUserAvatar(user.photo || null, user.name || 'Unknown', avatar.attributes);
+
+    if (nameEl) nameEl.textContent = user?.name || 'Unknown';
+    if (avatar) avatar.outerHTML = createUserAvatar(user?.photo || null, user?.name || 'Unknown', avatar.attributes);
     if (overlay) {
         overlay.style.display = 'block';
         overlay.querySelector('#sideMenuProfile')?.focus();

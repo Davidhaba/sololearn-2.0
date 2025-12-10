@@ -24,6 +24,10 @@
                 <p id="droptopTitle">Home</p>
             </div>
             <div id="topRight">
+                <button class="topButton" id="consoleBtn" title="Console">
+                    <i class="fas fa-error"></i>
+                    <div id="errorsCount">0</div>
+                </button>
                 <button class="topButton" id="favBtn" title="Lives">
                     <i class="fas fa-heart"></i>
                     <div id="livesCount">0</div>
@@ -220,6 +224,26 @@
 
     <div id="logoutModal"
         style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;align-items:center;justify-content:center;">
+    </div>
+
+    <div id="consoleModal"
+        style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1200;align-items:center;justify-content:center;padding:18px;">
+        <div
+            style="background:linear-gradient(180deg,#0b1220,#0f1724);padding:18px;border-radius:12px;width:100%;max-width:880px;max-height:80vh;overflow:auto;border:1px solid rgba(255,255,255,0.06);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;">
+                <h3 style="margin:0;color:var(--text-primary);font-size:16px;">Console</h3>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <button id="clearConsoleBtn" class="secondary-button"
+                        style="padding:6px 10px;font-size:13px;">Clear</button>
+                    <button id="closeConsoleBtn" class="primary-button"
+                        style="padding:6px 10px;font-size:13px;">Close</button>
+                </div>
+            </div>
+            <div id="consoleMessages"
+                style="background:rgba(255,255,255,0.02);border-radius:8px;padding:12px;font-family:monospace;font-size:13px;color:var(--text-primary);overflow:auto;max-height:62vh;">
+                <div style="color:var(--text-secondary);">No messages yet.</div>
+            </div>
+        </div>
     </div>
 
     <script>
