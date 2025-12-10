@@ -1,7 +1,7 @@
 const AuthService = (() => {
     let authToken, currentUser;
     return {
-        register: async (email, password, name) => {
+        register: async function(email, password, name) {
             const res = await fetch('/auth/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -18,7 +18,7 @@ const AuthService = (() => {
             return data;
         },
 
-        login: async (email, password) => {
+        login: async function(email, password) {
             const res = await fetch('/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -35,14 +35,24 @@ const AuthService = (() => {
             return data;
         },
 
-        logout: () => {
+        logout: function() {
             localStorage.removeItem('authToken');
             localStorage.removeItem('user');
             authToken = null;
             currentUser = null;
         },
 
-        getCurrentUser: async () => {
+        getToken: function() {
+            let token;
+            try {
+                token = localStorage.getItem('authToken') || authToken;
+            } catch {
+                token = authToken;
+            }
+            return token || null;
+        },
+
+        getCurrentUser: async function() {
             const token = this.getToken();
             if (!token) return null;
 
@@ -75,22 +85,12 @@ const AuthService = (() => {
             }
         },
 
-        isAuthenticated: () => {
+        isAuthenticated: function() {
             const token = this.getToken();
             return token ? !!token : false;
         },
 
-        getToken: () => {
-            let token;
-            try {
-                token = localStorage.getItem('authToken') || authToken;
-            } catch {
-                token = authToken;
-            }
-            return token || null;
-        },
-
-        getStoredUser: () => {
+        getStoredUser: function() {
             let user;
             try {
                 user = JSON.parse(localStorage.getItem('user')) || currentUser;
@@ -101,4 +101,3 @@ const AuthService = (() => {
         }
     };
 })();
-
