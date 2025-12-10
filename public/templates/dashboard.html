@@ -210,7 +210,7 @@
             </nav>
 
             <div class="sideMenuItem" id="toggleDebug" style="padding: 15px 10px; font-size: 14px;">
-                <input type="checkbox" onchange="toggleDebug(this)" checked id="debugToggle" style="float:right;">
+                <input type="checkbox" onchange="toggleDebug(this)" id="debugToggle" style="float:right;">
                 <label for="debugToggle">Debug Mode</label>
             </div>
 
@@ -259,7 +259,7 @@
                 });
             }
             if (document.readyState === 'loading') await new Promise(r => document.addEventListener('DOMContentLoaded', r));
-            //await Router.init();
+            await Router.init();
         })();
     </script>
     <script>

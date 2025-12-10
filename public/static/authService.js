@@ -55,7 +55,6 @@ const AuthService = (() => {
                     }
                 });
                 const data = await res.json();
-                console.log(data);
                 if (!res.ok) {
                     localStorage.removeItem('authToken');
                     localStorage.removeItem('user');
