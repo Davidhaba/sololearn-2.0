@@ -43,7 +43,7 @@ const AuthService = (() => {
         },
 
         getCurrentUser: async () => {
-            const token = getToken();
+            const token = this.getToken();
             if (!token) return null;
 
             try {
@@ -76,7 +76,7 @@ const AuthService = (() => {
         },
 
         isAuthenticated: () => {
-            const token = getToken();
+            const token = this.getToken();
             return token ? !!token : false;
         },
 
