@@ -27,10 +27,10 @@ const Router = (() => {
         const currentPage = window.location.pathname.split('/').pop() || '/';
 
         if (!isAuth && currentPage !== "auth") {
-            redirectTo('auth');
+            redirectTo('/auth');
         } else if (isAuth && currentPage !== "dashboard") {
             console.log('✅ Already logged in, redirecting to dashboard...');
-            redirectTo('dashboard');
+            redirectTo('/dashboard');
         }
     };
 

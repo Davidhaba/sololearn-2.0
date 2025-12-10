@@ -43,12 +43,7 @@ const AuthService = (() => {
         },
 
         getCurrentUser: async () => {
-            let token;
-            try {
-                token = localStorage.getItem('authToken');
-            } catch {
-                token = authToken;
-            }
+            const token = getToken();
             if (!token) return null;
 
             try {
@@ -60,6 +55,7 @@ const AuthService = (() => {
                     }
                 });
                 const data = await res.json();
+                console.log(data);
                 if (!res.ok) {
                     localStorage.removeItem('authToken');
                     localStorage.removeItem('user');
@@ -80,33 +76,28 @@ const AuthService = (() => {
         },
 
         isAuthenticated: () => {
-            let token;
-            try {
-                token = localStorage.getItem('authToken');
-            } catch {
-                token = authToken;
-            }
-            return !!token;
+            const token = getToken();
+            return token ? !!token : false;
         },
 
         getToken: () => {
             let token;
             try {
-                token = localStorage.getItem('authToken');
+                token = localStorage.getItem('authToken') || authToken;
             } catch {
                 token = authToken;
             }
-            return token;
+            return token || null;
         },
 
         getStoredUser: () => {
             let user;
             try {
-                user = JSON.parse(localStorage.getItem('user')) || currentUser || null;
+                user = JSON.parse(localStorage.getItem('user')) || currentUser;
             } catch {
-                user = currentUser || null;
+                user = currentUser;
             }
-            return user;
+            return user || null;
         }
     };
 })();

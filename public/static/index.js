@@ -24,8 +24,8 @@ function getToken() {
                 AppState.consoleMessages = AppState.consoleMessages || [];
                 AppState.consoleMessages.push({ level, text, timestamp: Date.now() });
                 updateConsoleCount();
-            } catch (e) { /* ignore capture errors */ }
-            try { orig.apply(console, args); } catch (e) { /* swallow */ }
+            } catch (e) { }
+            try { orig.apply(console, args); } catch (e) { }
         };
     });
 })();
