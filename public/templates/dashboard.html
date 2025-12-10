@@ -258,7 +258,7 @@
                 });
             }
             if (document.readyState === 'loading') await new Promise(r => document.addEventListener('DOMContentLoaded', r));
-            //await Router.init();
+            await Router.init();
         })();
     </script>
     <script>
