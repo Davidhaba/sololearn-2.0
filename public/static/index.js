@@ -36,7 +36,10 @@ function updateConsoleCount() {
         if (!btn) return;
         const msgs = Array.isArray(AppState.consoleMessages) ? AppState.consoleMessages : [];
         const errs = msgs.filter(m => m.level === 'error' || m.level === 'warn');
-        btn.textContent = String(errs.length || msgs.length || 0);
+        const count = String(errs.length || msgs.length || 0);
+        btn.textContent = count;
+        if (count !== '0') btn.style.display = '';
+        else btn.style.display = 'none';
     } catch { }
 }
 
@@ -367,6 +370,21 @@ function changeScreen(screenId) {
     const screenBtn = document.querySelector(`[data-screen="${screenId}"]`);
     if (screenBtn) {
         screenBtn.classList.add('active');
+    }
+
+    const screens = {
+        'userProfile': -1,
+        'main': 0,
+        'leaders': 1,
+        'code': 2,
+    }
+    const navEl = document.querySelector('#sideMenu #sideMenuNav');
+    if (screens[screenId] !== -1) {
+        navEl.style.setProperty('--button-index', screens[screenId] || 0);
+        navEl.style.removeProperty('--hoverAnimWidth');
+    } else {
+        navEl.style.setProperty('--button-index', -1.68);
+        navEl.style.setProperty('--hoverAnimWidth', '78%');
     }
 
     const titles = {

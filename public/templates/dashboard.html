@@ -8,7 +8,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
         crossorigin="anonymous" referrerpolicy="no-referrer" />
     <script>
-        const serv_static = '../static/';
+        let serv_static = '/';
+        let isDebug = false;
+        if (isDebug) serv_static = '../static/';
         document.head.appendChild(Object.assign(document.createElement('link'), { rel: 'stylesheet', href: serv_static + 'styles.css' }));
     </script>
 </head>
@@ -24,10 +26,6 @@
                 <p id="droptopTitle">Home</p>
             </div>
             <div id="topRight">
-                <button class="topButton" id="consoleBtn" title="Console">
-                    <i class="fas fa-error"></i>
-                    <div id="errorsCount">0</div>
-                </button>
                 <button class="topButton" id="favBtn" title="Lives">
                     <i class="fas fa-heart"></i>
                     <div id="livesCount">0</div>
@@ -187,12 +185,11 @@
         </div>
     </div>
 
-    <div id="sideMenuOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:2000;">
-        <div id="sideMenu"
-            style="width:260px;height:100%;background:linear-gradient(180deg,#0b1220,#0f1724);color:var(--text-primary);padding:18px;box-shadow:2px 0 20px rgba(0,0,0,0.6);">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
-                <div id="sideMenuProfile" role="button" tabindex="0"
-                    style="display:flex;align-items:center;gap:12px;cursor:pointer;">
+    <div id="sideMenuOverlay">
+        <div id="sideMenu">
+            <div class="sideMenuItem"
+                style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;">
+                <div class="hoverAnim" id="sideMenuProfile" role="button" tabindex="0">
                     <div style="width:32px;height:32px;border-radius:50%;overflow:hidden;flex:0 0 32px;">
                         <img id="sideMenuAvatar" src="" alt="avatar"
                             style="width:100%;height:100%;object-fit:cover;display:block;">
@@ -206,18 +203,22 @@
                     style="font-size:18px; padding: 8px 10px;">✕</button>
             </div>
 
-            <nav style="display:flex;flex-direction:column;gap:8px;">
-                <button class="menuItem" data-open-screen="main"
-                    style="text-align:left;padding:10px;border-radius:8px;border:0;background:transparent;color:var(--text-primary);cursor:pointer;">Home</button>
-                <button class="menuItem" data-open-screen="leaders"
-                    style="text-align:left;padding:10px;border-radius:8px;border:0;background:transparent;color:var(--text-primary);cursor:pointer;">Leaderboard</button>
-                <button class="menuItem" data-open-screen="code"
-                    style="text-align:left;padding:10px;border-radius:8px;border:0;background:transparent;color:var(--text-primary);cursor:pointer;">Code</button>
+            <nav class="sideMenuItem" id="sideMenuNav">
+                <button class="menuItem hoverAnim" data-open-screen="main">Home</button>
+                <button class="menuItem hoverAnim" data-open-screen="leaders">Leaderboard</button>
+                <button class="menuItem hoverAnim" data-open-screen="code">Code</button>
             </nav>
 
-            <div style="margin-top:18px;border-top:1px solid rgba(255,255,255,0.03);padding-top:12px;">
-                <button id="menuLogoutBtn" class="primary-button" style="width:100%;background:var(--danger);">Log
-                    out</button>
+            <div class="sideMenuItem" id="toggleDebug" style="padding: 15px 10px; font-size: 14px;">
+                <input type="checkbox" onchange="toggleDebug(this)" checked id="debugToggle" style="float:right;">
+                <label for="debugToggle">Debug Mode</label>
+            </div>
+
+            <div>
+                <div class="sideMenuItem">
+                    <button id="menuLogoutBtn" class="primary-button" style="width:100%;background:var(--danger);">
+                        Log out</button>
+                </div>
             </div>
         </div>
     </div>
@@ -258,7 +259,7 @@
                 });
             }
             if (document.readyState === 'loading') await new Promise(r => document.addEventListener('DOMContentLoaded', r));
-            await Router.init();
+            //await Router.init();
         })();
     </script>
     <script>
@@ -295,6 +296,34 @@
 
         function cancelLogout() {
             document.getElementById('logoutModal').style.display = 'none';
+        }
+
+        function toggleDebug(el) {
+            isDebug = el.checked;
+            if (isDebug) {
+                enableDebug();
+            } else {
+                disableDebug();
+            }
+        }
+
+        function enableDebug() {
+            const conBtn = document.createElement('button');
+            conBtn.className = 'topButton';
+            conBtn.id = 'consoleBtn';
+            conBtn.title = 'Console';
+            conBtn.innerHTML = `<i class="fas fa-circle-exclamation"></i><div class="text-danger" id="errorsCount">0</div>`;
+            conBtn.onclick = () => {
+                openConsoleModal();
+            };
+            conBtn.querySelector('i').style.color = '#ef4444';
+            document.querySelector('#droptopMenu > #topRight').prepend(conBtn);
+            updateConsoleCount();
+        }
+        function disableDebug() {
+            const conBtn = document.getElementById('consoleBtn');
+            if (conBtn) conBtn.remove();
+            closeConsoleModal();
         }
     </script>
 </body>
