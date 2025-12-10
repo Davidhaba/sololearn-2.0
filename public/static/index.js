@@ -328,10 +328,10 @@ function cancelProfileEdit() {
 function toggleSideMenu() {
     const overlay = document.getElementById('sideMenuOverlay');
     if (!overlay) return;
-    if (overlay.style.display !== 'none') {
-        closeSideMenu();
-    } else {
+    if (overlay.style.display === 'none') {
         openSideMenu();
+    } else {
+        closeSideMenu();
     }
 }
 
