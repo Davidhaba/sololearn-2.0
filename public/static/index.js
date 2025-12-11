@@ -869,6 +869,24 @@ function showNotification(message) {
     document.body.appendChild(notification);
 }
 
+async function sendLikeToServer(codeId) {
+    const token = getToken();
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(`/api/codes/${codeId}/like`, {
+        method: 'POST',
+        headers
+    });
+
+    if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || 'Failed to like code');
+    }
+
+    return res.json();
+}
+
 function initializeCodeTab() {
     document.querySelector('#code').querySelectorAll('.filterBtn').forEach(b => b.addEventListener('click', () => displayCodes(b.getAttribute('data-filter'))));
     const createCodeBtn = document.getElementById('createCodeBtn');
@@ -956,11 +974,33 @@ function displayCodes(filterType) {
         });
     });
     container.querySelectorAll('.likeCodeBtn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
+        btn.addEventListener('click', async (e) => {
             e.stopPropagation();
-            btn.classList.toggle('liked');
+
+            if (typeof AuthService === 'undefined' || !AuthService.isAuthenticated()) {
+                showNotification('Please sign in to like code');
+                return;
+            }
+
             const codeId = btn.getAttribute('data-code-id');
-            if (codeId) showNotification("The likes feature has not been implemented yet, but will be soon.");
+            if (!codeId) return;
+
+            btn.disabled = true;
+            const text = btn.textContent || '';
+            const currentLikes = parseInt((text.match(/\d+/) || [0])[0], 10) || 0;
+            btn.innerHTML = `<i class="fas fa-heart"></i> ${currentLikes + 1}`;
+
+            try {
+                const result = await sendLikeToServer(codeId);
+                if (result && result.code && typeof result.code.likes !== 'undefined') {
+                    btn.innerHTML = `<i class="fas fa-heart"></i> ${result.code.likes}`;
+                }
+            } catch (err) {
+                btn.innerHTML = `<i class="fas fa-heart"></i> ${currentLikes}`;
+                showNotification(err.message || 'Failed to send like');
+            } finally {
+                btn.disabled = false;
+            }
         });
     });
     container.querySelectorAll('.editCodeBtn').forEach(btn => {

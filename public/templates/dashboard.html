@@ -9,7 +9,7 @@
         crossorigin="anonymous" referrerpolicy="no-referrer" />
     <script>
         let serv_static = '/';
-        let isDebug = false;
+        let isDebug = true;
         if (isDebug) serv_static = '../static/';
         document.head.appendChild(Object.assign(document.createElement('link'), { rel: 'stylesheet', href: serv_static + 'styles.css' }));
     </script>
@@ -178,8 +178,7 @@
                 <img id="profileImage" src="" alt="Photo"
                     style="display: none; width: 20px; height: 20px; border-radius: 50%; object-fit: cover;">
                 <i class="fas fa-user" id="profileIcon" style="font-size: 20px;"></i>
-                <div class="text-danger" id="profileName"
-                    style="font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60px;">
+                <div class="text-danger" id="profileName">
                     Profile</div>
             </button>
         </div>
@@ -216,7 +215,7 @@
 
             <div>
                 <div class="sideMenuItem">
-                    <button id="menuLogoutBtn" class="primary-button" style="width:100%;background:var(--danger);">
+                    <button id="menuLogoutBtn" class="primary-button red-back-btn" style="width:100%;">
                         Log out</button>
                 </div>
             </div>
@@ -259,7 +258,7 @@
                 });
             }
             if (document.readyState === 'loading') await new Promise(r => document.addEventListener('DOMContentLoaded', r));
-            await Router.init();
+            if (!isDebug) await Router.init();
         })();
     </script>
     <script>
