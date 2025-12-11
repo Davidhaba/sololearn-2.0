@@ -86,6 +86,7 @@ async function initApp() {
     }
     initializeEventListeners();
     initializeCodeTab();
+    updateMenuAuthButton();
     changeScreen('main');
 }
 
@@ -175,11 +176,6 @@ function initializeEventListeners() {
     if (menuOverlay) menuOverlay.addEventListener('click', (e) => {
         if (e.target === menuOverlay) closeSideMenu();
     });
-    const logoutBtn = document.getElementById('menuLogoutBtn');
-    if (logoutBtn) logoutBtn.addEventListener('click', () => {
-        closeSideMenu();
-        handleLogout();
-    });
     document.querySelectorAll('#sideMenu .menuItem').forEach(btn => {
         btn.addEventListener('click', (e) => {
             closeSideMenu();
@@ -212,6 +208,33 @@ function initializeEventListeners() {
     const profileCancelBtn = document.getElementById('profileCancelBtn');
     if (profileSaveBtn) profileSaveBtn.addEventListener('click', (e) => saveProfileChanges(e.target));
     if (profileCancelBtn) profileCancelBtn.addEventListener('click', cancelProfileEdit);
+}
+
+function updateMenuAuthButton() {
+    const btn = document.getElementById('menuLogoutBtn');
+    if (!btn) return;
+    
+    const isAuthenticated = typeof AuthService !== 'undefined' && AuthService.isAuthenticated();
+    
+    if (isAuthenticated) {
+        btn.textContent = 'Log out';
+        btn.className = 'primary-button red-back-btn';
+        btn.onclick = () => {
+            closeSideMenu();
+            handleLogout();
+        };
+    } else {
+        btn.textContent = 'Log in';
+        btn.className = 'primary-button';
+        btn.onclick = () => {
+            closeSideMenu();
+            if (typeof Router !== 'undefined' && Router.redirectTo) {
+                Router.redirectTo('../templates/auth.html');
+            } else {
+                alert('Please log in via the /auth page.');
+            }
+        };
+    }
 }
 
 function openConsoleModal() {
@@ -337,6 +360,7 @@ function toggleSideMenu() {
 
 function openSideMenu() {
     const overlay = document.getElementById('sideMenuOverlay');
+    const menu = document.getElementById('sideMenu');
     const avatar = document.getElementById('sideMenuAvatar');
     const nameEl = document.getElementById('sideMenuName');
     const user = getAuthStoredUser();
@@ -344,14 +368,17 @@ function openSideMenu() {
     if (nameEl) nameEl.textContent = user?.name || 'Unknown';
     if (avatar) avatar.outerHTML = createUserAvatar(user?.photo || null, user?.name || 'Unknown', avatar.attributes);
     if (overlay) {
-        overlay.style.display = 'block';
+        overlay.classList.add('show');
         overlay.querySelector('#sideMenuProfile')?.focus();
     }
+    if (menu) menu.classList.add('show');
 }
 
 function closeSideMenu() {
     const overlay = document.getElementById('sideMenuOverlay');
-    if (overlay) overlay.style.display = 'none';
+    if (overlay) overlay.classList.remove('show');
+    const menu = document.getElementById('sideMenu');
+    if (menu) menu.classList.remove('show');
 }
 
 function changeScreen(screenId) {

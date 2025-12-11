@@ -9,7 +9,7 @@
         crossorigin="anonymous" referrerpolicy="no-referrer" />
     <script>
         let serv_static = '/';
-        let isDebug = false;
+        let isDebug = true;
         if (isDebug) serv_static = '../static/';
         document.head.appendChild(Object.assign(document.createElement('link'), { rel: 'stylesheet', href: serv_static + 'styles.css' }));
     </script>
@@ -184,40 +184,37 @@
         </div>
     </div>
 
-    <div id="sideMenuOverlay">
-        <div id="sideMenu">
-            <div class="sideMenuItem"
-                style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;">
-                <div class="hoverAnim" id="sideMenuProfile" role="button" tabindex="0">
-                    <div style="width:32px;height:32px;border-radius:50%;overflow:hidden;flex:0 0 32px;">
-                        <img id="sideMenuAvatar" src="" alt="avatar"
-                            style="width:100%;height:100%;object-fit:cover;display:block;">
-                    </div>
-                    <div>
-                        <div id="sideMenuName" style="font-weight:700">User</div>
-                        <div style="font-size:12px;color:var(--text-secondary);">View profile</div>
-                    </div>
+    <div id="sideMenuOverlay"></div>
+    <div id="sideMenu">
+        <div class="sideMenuItem"
+            style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;">
+            <div class="hoverAnim" id="sideMenuProfile" role="button" tabindex="0">
+                <div style="width:32px;height:32px;border-radius:50%;overflow:hidden;flex:0 0 32px;">
+                    <img id="sideMenuAvatar" src="" alt="avatar"
+                        style="width:100%;height:100%;object-fit:cover;display:block;">
                 </div>
-                <button id="closeSideMenu" class="secondary-button"
-                    style="font-size:18px; padding: 8px 10px;">✕</button>
-            </div>
-
-            <nav class="sideMenuItem" id="sideMenuNav">
-                <button class="menuItem hoverAnim" data-open-screen="main">Home</button>
-                <button class="menuItem hoverAnim" data-open-screen="leaders">Leaderboard</button>
-                <button class="menuItem hoverAnim" data-open-screen="code">Code</button>
-            </nav>
-
-            <div class="sideMenuItem" id="toggleDebug" style="padding: 15px 10px; font-size: 14px;">
-                <input type="checkbox" onchange="toggleDebug(this)" id="debugToggle" style="float:right;">
-                <label for="debugToggle">Debug Mode</label>
-            </div>
-
-            <div>
-                <div class="sideMenuItem">
-                    <button id="menuLogoutBtn" class="primary-button red-back-btn" style="width:100%;">
-                        Log out</button>
+                <div>
+                    <div id="sideMenuName" style="font-weight:700">User</div>
+                    <div style="font-size:12px;color:var(--text-secondary);">View profile</div>
                 </div>
+            </div>
+            <button id="closeSideMenu" class="secondary-button" style="font-size:18px; padding: 8px 10px;">✕</button>
+        </div>
+
+        <nav class="sideMenuItem" id="sideMenuNav">
+            <button class="menuItem hoverAnim" data-open-screen="main">Home</button>
+            <button class="menuItem hoverAnim" data-open-screen="leaders">Leaderboard</button>
+            <button class="menuItem hoverAnim" data-open-screen="code">Code</button>
+        </nav>
+
+        <div class="sideMenuItem" id="toggleDebug" style="padding: 15px 10px; font-size: 14px;">
+            <input type="checkbox" onchange="toggleDebug(this)" id="debugToggle" style="float:right;">
+            <label for="debugToggle">Debug Mode</label>
+        </div>
+
+        <div>
+            <div class="sideMenuItem">
+                <button id="menuLogoutBtn" class="primary-button red-back-btn" style="width:100%;">Log out</button>
             </div>
         </div>
     </div>
