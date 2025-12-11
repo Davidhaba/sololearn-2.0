@@ -328,7 +328,7 @@ function cancelProfileEdit() {
 function toggleSideMenu() {
     const overlay = document.getElementById('sideMenuOverlay');
     if (!overlay) return;
-    if (overlay.style.display === 'none') {
+    if (overlay.style.display === 'none' || overlay.style.display === '') {
         openSideMenu();
     } else {
         closeSideMenu();
