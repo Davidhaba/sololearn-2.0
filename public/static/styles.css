@@ -993,6 +993,7 @@ input[type="checkbox"]:checked::after {
     from {
         transform: translateX(-100%);
     }
+
     to {
         transform: translateX(0);
     }
@@ -1003,6 +1004,7 @@ input[type="checkbox"]:checked::after {
         display: flex;
         transform: translateX(0);
     }
+
     to {
         transform: translateX(-100%);
         box-shadow: none;

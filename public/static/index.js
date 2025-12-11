@@ -213,9 +213,9 @@ function initializeEventListeners() {
 function updateMenuAuthButton() {
     const btn = document.getElementById('menuLogoutBtn');
     if (!btn) return;
-    
+
     const isAuthenticated = typeof AuthService !== 'undefined' && AuthService.isAuthenticated();
-    
+
     if (isAuthenticated) {
         btn.textContent = 'Log out';
         btn.className = 'primary-button red-back-btn';
@@ -229,7 +229,7 @@ function updateMenuAuthButton() {
         btn.onclick = () => {
             closeSideMenu();
             if (typeof Router !== 'undefined' && Router.redirectTo) {
-                Router.redirectTo('../templates/auth.html');
+                Router.redirectTo('/auth');
             } else {
                 alert('Please log in via the /auth page.');
             }

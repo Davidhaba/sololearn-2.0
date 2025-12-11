@@ -9,7 +9,7 @@
         crossorigin="anonymous" referrerpolicy="no-referrer" />
     <script>
         let serv_static = '/';
-        let isDebug = true;
+        let isDebug = false;
         if (isDebug) serv_static = '../static/';
         document.head.appendChild(Object.assign(document.createElement('link'), { rel: 'stylesheet', href: serv_static + 'styles.css' }));
     </script>
@@ -271,8 +271,8 @@
                             style="flex:1;border-color:rgba(99,102,241,0.3);">
                             Cancel
                         </button>
-                        <button onclick="confirmLogout()" class="primary-button"
-                            style="flex:1;background:linear-gradient(135deg,#e74c3c,#c0392b);box-shadow:0 4px 15px rgba(231,76,60,0.3);">
+                        <button onclick="confirmLogout()" class="primary-button red-back-btn"
+                            style="flex:1;box-shadow:0 4px 15px rgba(231,76,60,0.3);">
                             Yes
                         </button>
                     </div>
