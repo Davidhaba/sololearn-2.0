@@ -921,12 +921,14 @@ function getAllCodes() {
 function filterCodes(filterType) {
     let codes = getAllCodes();
 
+    const getLikes = (c) => Array.isArray(c && c.likedBy) ? c.likedBy.length : 0;
+
     switch (filterType) {
         case 'trending':
             codes = codes.sort((a, b) => {
                 const viewsDiff = (b.views || 0) - (a.views || 0);
                 if (viewsDiff !== 0) return viewsDiff;
-                const likesDiff = (b.likes || 0) - (a.likes || 0);
+                const likesDiff = getLikes(b) - getLikes(a);
                 if (likesDiff !== 0) return likesDiff;
                 return new Date(b.timestamp) - new Date(a.timestamp);
             });
@@ -940,7 +942,7 @@ function filterCodes(filterType) {
             codes = codes.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
             break;
         case 'mostLiked':
-            codes = codes.sort((a, b) => b.likes - a.likes);
+            codes = codes.sort((a, b) => getLikes(b) - getLikes(a));
             break;
         default:
             codes = codes.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -986,17 +988,28 @@ function displayCodes(filterType) {
             if (!codeId) return;
 
             btn.disabled = true;
-            const text = btn.textContent || '';
-            const currentLikes = parseInt((text.match(/\d+/) || [0])[0], 10) || 0;
-            btn.innerHTML = `<i class="fas fa-heart"></i> ${currentLikes + 1}`;
+            const likesText = btn.querySelector('.likesText');
+            const currentLikes = parseInt(likesText?.textContent || '0', 10) || 0;
+            const currentlyLiked = btn.getAttribute('data-liked') === 'true';
+
+            const optimisticLikes = currentlyLiked ? Math.max(0, currentLikes - 1) : currentLikes + 1;
+            if (likesText) likesText.textContent = optimisticLikes;
+            btn.setAttribute('data-liked', (!currentlyLiked).toString());
+            btn.classList.toggle('liked');
 
             try {
                 const result = await sendLikeToServer(codeId);
-                if (result && result.code && typeof result.code.likes !== 'undefined') {
-                    btn.innerHTML = `<i class="fas fa-heart"></i> ${result.code.likes}`;
+                if (result && result.code && typeof result.code.likedBy !== 'undefined') {
+                    if (likesText) likesText.textContent = result.code.likedBy.length.toString() || '0';
+                }
+                if (typeof result.liked !== 'undefined') {
+                    btn.setAttribute('data-liked', result.liked ? 'true' : 'false');
+                    if (result.liked) btn.classList.add('liked'); else btn.classList.remove('liked');
                 }
             } catch (err) {
-                btn.innerHTML = `<i class="fas fa-heart"></i> ${currentLikes}`;
+                if (likesText) likesText.textContent = currentLikes;
+                btn.setAttribute('data-liked', currentlyLiked ? 'true' : 'false');
+                if (currentlyLiked) btn.classList.add('liked'); else btn.classList.remove('liked');
                 showNotification(err.message || 'Failed to send like');
             } finally {
                 btn.disabled = false;
@@ -1025,6 +1038,7 @@ function displayCodes(filterType) {
 function buildCodeCard(code) {
     const currentUser = getAuthStoredUser();
     const isMyCode = currentUser && currentUser.id && code.userid === currentUser.id;
+    const isLiked = Array.isArray(code.likedBy) && currentUser && currentUser.id && code.likedBy.some(id => String(id) === String(currentUser.id));
     const user = getUserById(code.userid);
     if (!user) return '';
     return `
@@ -1044,8 +1058,8 @@ function buildCodeCard(code) {
             <div class="codeCardFooter">
                 <div style="display: flex; gap: 16px; flex: 1;">
                     <span><i class="fas fa-eye"></i> ${code.views}</span>
-                    <button class="likeCodeBtn" data-code-id="${code.id}">
-                        <i class="fas fa-heart"></i> ${code.likes}
+                    <button class="likeCodeBtn ${isLiked ? 'liked' : ''}" data-code-id="${code.id}" data-liked="${isLiked ? 'true' : 'false'}">
+                        <i class="fas fa-heart"></i><div class="likesText">${Array.isArray(code.likedBy) ? code.likedBy.length : 0}</div>
                     </button>
                 </div>
                 ${isMyCode ? `<div style="display: flex; gap: 6px;">
@@ -1088,7 +1102,7 @@ function showCodeDetail(code) {
                     <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-secondary);">Views</p>
                 </div>
                 <div style="text-align: center;">
-                    <p style="margin: 0; font-size: 18px; font-weight: 600;">${code.likes}</p>
+                    <p style="margin: 0; font-size: 18px; font-weight: 600;">${Array.isArray(code.likedBy) ? code.likedBy.length : 0}</p>
                     <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-secondary);">Likes</p>
                 </div>
             </div>

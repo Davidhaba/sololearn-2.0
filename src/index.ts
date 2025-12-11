@@ -296,7 +296,7 @@ app.post('/api/codes', authMiddleware, async (req, res) => {
             code: code,
             timestamp: new Date().toLocaleDateString('en-US'),
             views: 0,
-            likes: 0,
+            likedBy: [],
             createdAt: new Date().toISOString()
         };
 
@@ -399,16 +399,32 @@ app.post('/api/codes/:codeId/like', authMiddleware, async (req, res) => {
         const { codeId } = req.params;
 
         const snapshot = await db.collection('users').get();
+        const user = req.user;
         for (const doc of snapshot.docs) {
             const userData = doc.data();
             const codes = userData.codes || [];
             const idx = codes.findIndex(c => String(c.id) === String(codeId));
             if (idx !== -1) {
-                const existingLikes = Number(codes[idx].likes) || 0;
-                codes[idx].likes = existingLikes + 1;
+                const likedBy = Array.isArray(codes[idx].likedBy) ? codes[idx].likedBy : [];
+                const requesterId = req.user && req.user.userId ? req.user.userId : null;
+
+
+                let liked = false;
+                const alreadyIndex = requesterId ? likedBy.findIndex(u => String(u) === String(requesterId)) : -1;
+
+                if (alreadyIndex === -1 && requesterId) {
+                    likedBy.push(requesterId);
+                    liked = true;
+                } else if (alreadyIndex !== -1) {
+                    likedBy.splice(alreadyIndex, 1);
+                    liked = false;
+                }
+
+                codes[idx].likedBy = likedBy;
                 codes[idx].updatedAt = new Date().toISOString();
+
                 await db.collection('users').doc(doc.id).update({ codes });
-                return res.json({ success: true, code: codes[idx], ownerId: doc.id });
+                return res.json({ success: true, code: codes[idx], ownerId: doc.id, liked });
             }
         }
 
