@@ -970,8 +970,9 @@ function displayCodes(filterType) {
         card.addEventListener('click', (e) => {
             if (!e.target.closest('button')) {
                 const codeId = card.getAttribute('data-code-id');
-                const code = codes.find(c => c.id === parseInt(codeId));
+                const code = getAllCodes().find(c => String(c.id) === String(codeId));
                 if (code) showCodeDetail(code);
+                else showNotification('Code not found');
             }
         });
     });
@@ -1021,7 +1022,7 @@ function displayCodes(filterType) {
                             }
                         }
                     } catch (e) {
-                        console.warn('Failed to update local code cache', e);
+                        console.warn('Failed to update local code cache,', e.message);
                     }
                 }
                 if (typeof result.liked !== 'undefined') {
@@ -1042,7 +1043,7 @@ function displayCodes(filterType) {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
             const codeId = btn.getAttribute('data-code-id');
-            const code = codes.find(c => c.id === parseInt(codeId));
+            const code = getAllCodes().find(c => String(c.id) === String(codeId));
             if (code) openCodeEditor(code);
         });
     });

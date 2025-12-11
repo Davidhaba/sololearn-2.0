@@ -9,7 +9,7 @@
         crossorigin="anonymous" referrerpolicy="no-referrer" />
     <script>
         let serv_static = '/';
-        let isDebug = true;
+        let isDebug = false;
         if (isDebug) serv_static = '../static/';
         document.head.appendChild(Object.assign(document.createElement('link'), { rel: 'stylesheet', href: serv_static + 'styles.css' }));
     </script>
@@ -71,7 +71,7 @@
                     </button>
                 </div>
                 <div id="codeContent"></div>
-                <button id="createCodeBtn" class="createCodeBtn" title="Create new code">
+                <button id="createCodeBtn" class="primary-button createCodeBtn" title="Create new code">
                     <i class="fas fa-plus"></i>
                 </button>
             </div>
