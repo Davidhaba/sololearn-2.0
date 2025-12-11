@@ -424,7 +424,7 @@ app.post('/api/codes/:codeId/like', authMiddleware, async (req, res) => {
                 codes[idx].updatedAt = new Date().toISOString();
 
                 await db.collection('users').doc(doc.id).update({ codes });
-                return res.json({ success: true, code: codes[idx], ownerId: doc.id, liked });
+                return res.json({ success: true, code: codes[idx], liked });
             }
         }
 

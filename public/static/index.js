@@ -999,8 +999,30 @@ function displayCodes(filterType) {
 
             try {
                 const result = await sendLikeToServer(codeId);
-                if (result && result.code && typeof result.code.likedBy !== 'undefined') {
-                    if (likesText) likesText.textContent = result.code.likedBy.length.toString() || '0';
+                if (result && result.code) {
+                    if (typeof result.code.likedBy !== 'undefined') {
+                        if (likesText) likesText.textContent = String(result.code.likedBy.length || 0);
+                    }
+                    try {
+                        const ownerId = result.code.userid || null;
+                        if (ownerId && Array.isArray(AppState.users)) {
+                            const owner = AppState.users.find(u => String(u.id) === String(ownerId));
+                            if (owner) {
+                                const cid = result.code.id || null;
+                                if (cid !== null) {
+                                    const idx = owner.codes.findIndex(c => String(c.id) === String(cid));
+                                    if (idx !== -1) {
+                                        owner.codes[idx] = { ...owner.codes[idx], ...result.code };
+                                    }
+                                }
+                                if (String(AppState.currentUser?.id) === String(ownerId)) {
+                                    AppState.currentUser = { ...AppState.currentUser, ...owner };
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Failed to update local code cache', e);
+                    }
                 }
                 if (typeof result.liked !== 'undefined') {
                     btn.setAttribute('data-liked', result.liked ? 'true' : 'false');
