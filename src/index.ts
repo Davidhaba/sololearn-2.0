@@ -89,7 +89,7 @@ app.post('/auth/register', async (req, res) => {
         }
         const passwordHash = hashPassword(password);
         const accountRef = await db.collection('accounts').add({
-            email, passwordHash, notifications: [{ title: 'Welcome to SoloLearn 2.0!', message: 'Thanks for joining our platform. Start coding and earn XP!', timestamp: Date.now(), read: false }]
+            email, passwordHash, notifications: [{ id: 1, title: 'Welcome to SoloLearn 2.0!', message: 'Thanks for joining our platform. Start coding and earn XP!', timestamp: new Date(Date.now()).toISOString(), read: false }]
         });
 
         const token = createToken(accountRef.id, email);
