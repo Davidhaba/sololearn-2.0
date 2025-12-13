@@ -254,7 +254,6 @@ function clearAllNotifications() {
 async function persistNotificationOperation(action, data) {
     if (typeof AuthService === 'undefined' || !AuthService.isAuthenticated()) return;
     try {
-        console.log('notificationIds:', data.notificationIds || '');
         const res = await fetch('/auth/notifications', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },

@@ -235,29 +235,34 @@ app.put('/auth/notifications', authMiddleware, async (req, res) => {
         const notifications = Array.isArray(accountData.notifications) ? accountData.notifications : [];
         let updatedNotifications = [...notifications];
         const updates: any = {};
+        const normalizedIdsSet = Array.isArray(notificationIds) ? new Set(notificationIds.map((id: any) => String(id))) : null;
+        const normalize = (v: any) => (v == null ? null : String(v));
         switch (action) {
             case 'mark_read':
                 if (!notificationId) {
                     return res.status(400).json({ error: 'notificationId is required for mark_read action' });
                 }
+                const nid = normalize(notificationId);
                 updatedNotifications = notifications.map(n =>
-                    String(n.id) === String(notificationId) ? { ...n, read: true } : n
+                    normalize(n.id) === nid ? { ...n, read: true } : n
                 );
                 break;
             case 'mark_all_read':
                 if (!Array.isArray(notificationIds)) {
                     return res.status(400).json({ error: 'notificationIds array is required for mark_all_read action' });
                 }
+                const ids = normalizedIdsSet || new Set();
                 updatedNotifications = notifications.map(n =>
-                    notificationIds.includes(String(n.id)) ? { ...n, read: true } : n
+                    ids.has(normalize(n.id)) ? { ...n, read: true } : n
                 );
                 break;
             case 'clear_all':
                 if (!Array.isArray(notificationIds)) {
                     return res.status(400).json({ error: 'notificationIds array is required for clear_all action' });
                 }
+                const idsToClear = normalizedIdsSet || new Set();
                 updatedNotifications = notifications.filter(n =>
-                    !notificationIds.includes(String(n.id))
+                    !idsToClear.has(normalize(n.id))
                 );
                 break;
             default:
