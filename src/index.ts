@@ -89,7 +89,7 @@ app.post('/auth/register', async (req, res) => {
         }
         const passwordHash = hashPassword(password);
         const accountRef = await db.collection('accounts').add({
-            email, passwordHash, notifications: []
+            email, passwordHash, notifications: [{ title: 'Welcome to SoloLearn 2.0!', message: 'Thanks for joining our platform. Start coding and earn XP!', timestamp: Date.now(), read: false }]
         });
 
         const token = createToken(accountRef.id, email);
@@ -155,14 +155,14 @@ app.get('/auth/me', authMiddleware, async (req, res) => {
     try {
         const user = await db.collection('users').doc(req.user.userId).get();
         const account = await db.collection('accounts').doc(req.user.userId).get();
-        
+
         if (!user.exists) {
             return res.status(404).json({ error: 'User not found' });
         }
-        
+
         const userData = user.data() as User;
         const notifData = account.exists ? account.data()?.notifications : [];
-        
+
         res.json({
             user: {
                 id: user.id,
@@ -252,12 +252,12 @@ app.put('/auth/notifications', authMiddleware, async (req, res) => {
         await accountRef.update(updates);
         const user = await db.collection('users').doc(userId).get();
         const userData = user.exists ? user.data() as User : {};
-        res.json({ 
-            user: { 
-                id: userId, 
+        res.json({
+            user: {
+                id: userId,
                 ...userData,
                 notifications: updatedNotifications
-            } 
+            }
         });
     } catch (e) {
         const errorMessage = e instanceof Error ? e.message : String(e);

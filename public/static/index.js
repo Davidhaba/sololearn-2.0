@@ -70,9 +70,7 @@ async function fetchUsersFromApi() {
 async function initApp() {
     try {
         const currentUser = await AuthService?.getCurrentUser() || null;
-        if (currentUser && currentUser.user) {
-            AppState.currentUser = currentUser.user;
-        } else if (currentUser) {
+        if (currentUser) {
             AppState.currentUser = currentUser;
         }
         updateProfileImage(AppState.currentUser);
@@ -250,19 +248,25 @@ function clearAllNotifications() {
     user.notifications = [];
     updateNotifEl(user);
     persistNotificationOperation('clear_all', { notificationIds }).catch(() => { });
-    try { if (Array.isArray(AppState.users)) updateUsers().catch(() => { }); } catch (e) { }
 }
 
 async function persistNotificationOperation(action, data) {
     if (typeof AuthService === 'undefined' || !AuthService.isAuthenticated()) return;
     try {
-        await fetch('/auth/notifications', {
+        const res = await fetch('/auth/notifications', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
             body: JSON.stringify({ action, ...data })
         });
+        const data = await res.json();
+        if (!res.ok) {
+            if (data.error) throw new Error(data.error);
+            if (res.status) throw new Error(`status ${res.status}`);
+            throw new Error('Unknown error');
+        }
+        if (data.user) AppState.currentUser = data.user;
     } catch (e) {
-        console.warn('Failed to persist notification operation:', e);
+        console.warn('Failed to persist notification operation.', e);
     }
 }
 
@@ -311,11 +315,6 @@ function initializeEventListeners() {
             showNotification("You have no active streak.");
             if (streakEl) streakEl.textContent = '0';
         }
-    });
-
-    document.getElementById('notifBtn').addEventListener('click', () => {
-        changeScreen('notificationsScreen');
-        renderNotifications();
     });
 
     document.getElementById('menuBtn').addEventListener('click', () => {
@@ -587,7 +586,10 @@ async function updateUsers() {
     const onlineUsers = await fetchUsersFromApi();
     if (onlineUsers && Array.isArray(onlineUsers) && onlineUsers.length) {
         AppState.users = onlineUsers;
-        AppState.currentUser = onlineUsers.find(u => String(u.id) === String(AppState.currentUser?.id)) || AppState.currentUser;
+        if (AuthService && typeof AuthService.getCurrentUser === 'function') {
+            const storedUser = await AuthService.getCurrentUser();
+            if (storedUser) AppState.currentUser = storedUser;
+        }
         return;
     }
     throw new Error('No users data received from API');
@@ -1500,37 +1502,6 @@ function discardCode() {
     AppState.currentEditingCode = null;
     fields.forEach(({ el }) => el.value = '');
     changeScreen('code');
-}
-
-// Test function to add sample notifications (for development)
-function addSampleNotifications() {
-    let user = getAuthStoredUser();
-    if (!user) user = {};
-    if (!Array.isArray(user.notifications)) user.notifications = [];
-
-    const samples = [
-        {
-            title: 'Welcome to SoloLearn 2.0!',
-            message: 'Thanks for joining our platform. Start coding and earn XP!',
-            timestamp: Date.now() - 86400000, // 1 day ago
-            read: false
-        },
-        {
-            title: 'New Achievement Unlocked',
-            message: 'Congratulations! You earned the "First Code" achievement.',
-            timestamp: Date.now() - 3600000, // 1 hour ago
-            read: false
-        },
-        {
-            title: 'Daily Streak Reminder',
-            message: 'Keep your coding streak alive! Code something today.',
-            timestamp: Date.now() - 1800000, // 30 min ago
-            read: true
-        }
-    ];
-
-    user.notifications.push(...samples);
-    renderNotifications(user);
 }
 
 if (!(typeof navigator === 'undefined' || navigator.userAgent.includes('wv'))) {

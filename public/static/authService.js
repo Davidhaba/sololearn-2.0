@@ -65,22 +65,22 @@ const AuthService = (() => {
                     }
                 });
                 const data = await res.json();
-                if (!res.ok) {
+                if (!res.ok || data.error) {
                     localStorage.removeItem('authToken');
                     localStorage.removeItem('user');
                     authToken = null;
                     currentUser = null;
                     throw new Error(data.error || 'Failed to fetch user');
                 } else {
-                    const userObj = (data && data.user) ? data.user : data;
+                    const userObj = data && data.user;
                     try {
                         localStorage.setItem('user', JSON.stringify(userObj));
                     } catch { }
                     currentUser = userObj;
                     return userObj;
                 }
-            } catch (err) {
-                console.error('getCurrentUser error:', err);
+            } catch (e) {
+                console.error('getCurrentUser error:', e);
                 return null;
             }
         },
