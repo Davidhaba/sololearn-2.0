@@ -236,7 +236,6 @@ function markAllNotificationsRead() {
     const unreadIds = user.notifications
         .filter(n => !n.read)
         .map(n => n.id);
-    console.log('Marking notifications read:', unreadIds);
     if (unreadIds.length === 0) return;
     user.notifications = user.notifications.map(n => ({ ...n, read: true }));
     updateNotifEl(user);
@@ -255,6 +254,7 @@ function clearAllNotifications() {
 async function persistNotificationOperation(action, data) {
     if (typeof AuthService === 'undefined' || !AuthService.isAuthenticated()) return;
     try {
+        console.log('notificationIds:', data.notificationIds || '');
         const res = await fetch('/auth/notifications', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
