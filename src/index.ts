@@ -436,6 +436,28 @@ app.post('/api/codes/:codeId/like', authMiddleware, async (req, res) => {
     }
 });
 
+app.post('/api/codes/:codeId/view', authMiddleware, async (req, res) => {
+    try {
+        const { codeId } = req.params;
+
+        const snapshot = await db.collection('users').get();
+        for (const doc of snapshot.docs) {
+            const userData = doc.data() as User;
+            const codes = userData.codes || [];
+            const idx = codes.findIndex(c => String(c.id) === String(codeId));
+            if (idx !== -1) {
+                codes[idx].views = (codes[idx].views || 0) + 1;
+                await db.collection('users').doc(doc.id).update({ codes });
+                return res.json({ success: true, views: codes[idx].views });
+            }
+        }
+        return res.status(404).json({ error: 'Code not found' });
+    } catch (err) {
+        console.error('POST /api/codes/:codeId/view error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.get('/:name', (req, res) => {
     const { name } = req.params;
     const filePath = {

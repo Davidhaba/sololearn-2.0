@@ -1106,7 +1106,7 @@ function buildCodeCard(code) {
     `;
 }
 
-function showCodeDetail(code) {
+async function showCodeDetail(code) {
     const user = getUserById(code.userid);
     if (!user) return;
     const prevCard = document.querySelector('#codeDetailModal');
@@ -1129,11 +1129,11 @@ function showCodeDetail(code) {
             ${createUserAvatar(user.photo, user.name, `style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;"`)}
             <div style="flex: 1;">
                 <p style="margin: 0; font-weight: 600;">${escapeHtml(user.name)}</p>
-                <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--text-secondary);">${code.updatedAt}</p>
+                <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--text-secondary);">${new Date(code.updatedAt).toLocaleString()}</p>
             </div>
             <div style="display: flex; gap: 12px;">
                 <div style="text-align: center;">
-                    <p style="margin: 0; font-size: 18px; font-weight: 600;">${code.views}</p>
+                    <p class="viewsCount" style="margin: 0; font-size: 18px; font-weight: 600;">${(code.views + 1) || 1}</p>
                     <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-secondary);">Views</p>
                 </div>
                 <div style="text-align: center;">
@@ -1152,6 +1152,33 @@ function showCodeDetail(code) {
     document.body.appendChild(modal);
     const closeBtn = content.querySelector('.code-close');
     if (closeBtn) closeBtn.addEventListener('click', () => modal.remove());
+
+    try {
+        const res = await fetch(`/api/codes/${code.id}/view`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            if (data && data.success) {
+                code.views = data.views;
+                const viewsCountEl = content.querySelector('.viewsCount');
+                if (viewsCountEl) viewsCountEl.textContent = String(data.views || 0);
+                const ownerId = code.userid;
+                if (ownerId && Array.isArray(AppState.users)) {
+                    const owner = AppState.users.find(u => String(u.id) === String(ownerId));
+                    if (owner && owner.codes) {
+                        const cidx = owner.codes.findIndex(c => String(c.id) === String(code.id));
+                        if (cidx !== -1) {
+                            owner.codes[cidx].views = data.views;
+                        }
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        if (e && isDebug) console.warn('Failed to increment views:', e.message);
+    }
 }
 
 function openCodeEditor(codeToEdit = null) {
