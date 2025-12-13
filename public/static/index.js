@@ -1083,7 +1083,7 @@ function buildCodeCard(code) {
                     ${createUserAvatar(user.photo, user.name, `class="codeAuthorAvatar"`)}
                     <div>
                         <p style="margin: 0; font-weight: 600; color: var(--text-primary);">${escapeHtml(user.name)}</p>
-                        <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--text-secondary);">${new Date(code.updatedAt).toLocaleString('en-US')}</p>
+                        <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--text-secondary);">${new Date(code.updatedAt).toLocaleString()}</p>
                     </div>
                 </div>
                 <span class="codeBadge">${escapeHtml(code.language)}</span>
