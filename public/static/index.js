@@ -226,6 +226,7 @@ function markNotificationRead(idx) {
     const notification = user.notifications[idx];
     notification.read = true;
     updateNotifEl(user);
+    console.log('Marking notification read:', notification);
     persistNotificationOperation('mark_read', { notificationId: notification.id }).catch(() => { });
 }
 
