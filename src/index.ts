@@ -408,7 +408,6 @@ app.post('/api/codes/:codeId/like', authMiddleware, async (req, res) => {
         const { codeId } = req.params;
 
         const snapshot = await db.collection('users').get();
-        const user = req.user;
         for (const doc of snapshot.docs) {
             const userData = doc.data() as User;
             const codes = userData.codes || [];
@@ -426,7 +425,6 @@ app.post('/api/codes/:codeId/like', authMiddleware, async (req, res) => {
                     liked = false;
                 }
                 codes[idx].likedBy = likedBy;
-                codes[idx].updatedAt = new Date().toISOString();
                 await db.collection('users').doc(doc.id).update({ codes });
                 return res.json({ success: true, code: codes[idx], liked });
             }
