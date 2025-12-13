@@ -46,7 +46,8 @@ if (!raw) {
 try {
     serviceAccount = JSON.parse(raw);
 } catch (e) {
-    console.error('Failed to parse FIREKEY_JSON as JSON:', e.message);
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    console.error('Failed to parse FIREKEY_JSON as JSON:', errorMessage);
     process.exit(1);
 }
 
@@ -55,8 +56,9 @@ try {
         credential: admin.credential.cert(serviceAccount),
         projectId: serviceAccount.project_id
     });
-} catch (err) {
-    console.error('❌ Firebase init failed:', err.message);
+} catch (e) {
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    console.error('❌ Firebase init failed:', errorMessage);
     process.exit(1);
 }
 
@@ -87,7 +89,7 @@ app.post('/auth/register', async (req, res) => {
         }
         const passwordHash = hashPassword(password);
         const accountRef = await db.collection('accounts').add({
-            email, passwordHash
+            email, passwordHash, notifications: []
         });
 
         const token = createToken(accountRef.id, email);
@@ -152,19 +154,26 @@ app.post('/auth/login', async (req, res) => {
 app.get('/auth/me', authMiddleware, async (req, res) => {
     try {
         const user = await db.collection('users').doc(req.user.userId).get();
+        const account = await db.collection('accounts').doc(req.user.userId).get();
+        
         if (!user.exists) {
             return res.status(404).json({ error: 'User not found' });
         }
+        
         const userData = user.data() as User;
+        const notifData = account.exists ? account.data()?.notifications : [];
+        
         res.json({
             user: {
                 id: user.id,
-                ...userData
+                ...userData,
+                notifications: notifData || []
             }
         });
     } catch (err) {
-        console.error('GET /auth/me error:', err);
-        res.status(500).json({ error: err.message });
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        console.error('GET /auth/me error:', errorMessage);
+        res.status(500).json({ error: errorMessage });
     }
 });
 
@@ -190,9 +199,70 @@ app.put('/auth/me', authMiddleware, async (req, res) => {
 
         const updated = await userRef.get();
         res.json({ user: { id: updated.id, ...updated.data() as User } });
-    } catch (err) {
-        console.error('PUT /auth/me error:', err);
-        res.status(500).json({ error: err.message });
+    } catch (e) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        console.error('PUT /auth/me error:', errorMessage);
+        res.status(500).json({ error: errorMessage });
+    }
+});
+
+app.put('/auth/notifications', authMiddleware, async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { action, notificationId, notificationIds } = req.body;
+        if (!action) {
+            return res.status(400).json({ error: 'Action is required' });
+        }
+        const accountRef = db.collection('accounts').doc(userId);
+        const accountDoc = await accountRef.get();
+        if (!accountDoc.exists) return res.status(404).json({ error: 'Account not found' });
+        const accountData = accountDoc.data();
+        const notifications = Array.isArray(accountData.notifications) ? accountData.notifications : [];
+        let updatedNotifications = [...notifications];
+        const updates: any = {};
+        switch (action) {
+            case 'mark_read':
+                if (!notificationId) {
+                    return res.status(400).json({ error: 'notificationId is required for mark_read action' });
+                }
+                updatedNotifications = notifications.map(n =>
+                    String(n.id) === String(notificationId) ? { ...n, read: true } : n
+                );
+                break;
+            case 'mark_all_read':
+                if (!Array.isArray(notificationIds)) {
+                    return res.status(400).json({ error: 'notificationIds array is required for mark_all_read action' });
+                }
+                updatedNotifications = notifications.map(n =>
+                    notificationIds.includes(String(n.id)) ? { ...n, read: true } : n
+                );
+                break;
+            case 'clear_all':
+                if (!Array.isArray(notificationIds)) {
+                    return res.status(400).json({ error: 'notificationIds array is required for clear_all action' });
+                }
+                updatedNotifications = notifications.filter(n =>
+                    !notificationIds.includes(String(n.id))
+                );
+                break;
+            default:
+                return res.status(400).json({ error: 'Invalid action' });
+        }
+        updates.notifications = updatedNotifications;
+        await accountRef.update(updates);
+        const user = await db.collection('users').doc(userId).get();
+        const userData = user.exists ? user.data() as User : {};
+        res.json({ 
+            user: { 
+                id: userId, 
+                ...userData,
+                notifications: updatedNotifications
+            } 
+        });
+    } catch (e) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        console.error('PUT /auth/notifications error:', errorMessage);
+        res.status(500).json({ error: errorMessage });
     }
 });
 
@@ -204,40 +274,10 @@ app.get('/api/users', authMiddleware, async (req, res) => {
             ...doc.data() as User
         }));
         res.json(users);
-    } catch (err) {
-        console.error('GET /api/users error:', err);
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.post('/api/users/create', authMiddleware, async (req, res) => {
-    try {
-        const { name } = req.body;
-
-        if (!name || typeof name !== 'string' || name.trim().length === 0) {
-            return res.status(400).json({ error: 'Name is required and must be a non-empty string' });
-        }
-
-        const user = {
-            name: name.trim(),
-            level: 1,
-            xp: 0,
-            streak: 0,
-            achievements: [],
-            photo: '',
-            codes: [],
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        };
-
-        const docRef = await db.collection('users').add(user);
-        res.status(201).json({
-            id: docRef.id,
-            ...user
-        });
-    } catch (err) {
-        console.error('POST /api/users/create error:', err);
-        res.status(500).json({ error: err.message });
+    } catch (e) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        console.error('GET /api/users error:', errorMessage);
+        res.status(500).json({ error: errorMessage });
     }
 });
 
@@ -264,9 +304,10 @@ app.put('/api/users/:userId', authMiddleware, async (req, res) => {
             id: doc.id,
             ...doc.data() as User
         });
-    } catch (err) {
-        console.error('PUT /api/users/:userId error:', err);
-        res.status(500).json({ error: err.message });
+    } catch (e) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        console.error('PUT /api/users/:userId error:', errorMessage);
+        res.status(500).json({ error: errorMessage });
     }
 });
 
@@ -275,9 +316,10 @@ app.delete('/api/users/:userId', authMiddleware, async (req, res) => {
         const { userId } = req.params;
         await db.collection('users').doc(userId).delete();
         res.json({ message: `User ${userId} deleted successfully` });
-    } catch (err) {
-        console.error('DELETE /api/users/:userId error:', err);
-        res.status(500).json({ error: err.message });
+    } catch (e) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        console.error('DELETE /api/users/:userId error:', errorMessage);
+        res.status(500).json({ error: errorMessage });
     }
 });
 
@@ -321,9 +363,10 @@ app.post('/api/codes', authMiddleware, async (req, res) => {
         await db.collection('users').doc(userId).update({ codes });
 
         res.status(201).json(newCode);
-    } catch (err) {
-        console.error('POST /api/codes error:', err);
-        res.status(500).json({ error: err.message });
+    } catch (e) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        console.error('POST /api/codes error:', errorMessage);
+        res.status(500).json({ error: errorMessage });
     }
 });
 
@@ -368,9 +411,10 @@ app.put('/api/codes/:codeId', authMiddleware, async (req, res) => {
         await db.collection('users').doc(userId).update({ codes });
 
         res.json(codes[codeIndex]);
-    } catch (err) {
-        console.error('PUT /api/codes/:codeId error:', err);
-        res.status(500).json({ error: err.message });
+    } catch (e) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        console.error('PUT /api/codes/:codeId error:', errorMessage);
+        res.status(500).json({ error: errorMessage });
     }
 });
 
@@ -397,9 +441,10 @@ app.delete('/api/codes/:codeId', authMiddleware, async (req, res) => {
         await db.collection('users').doc(userId).update({ codes });
 
         res.json({ message: 'Code deleted successfully' });
-    } catch (err) {
-        console.error('DELETE /api/codes/:codeId error:', err);
-        res.status(500).json({ error: err.message });
+    } catch (e) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        console.error('DELETE /api/codes/:codeId error:', errorMessage);
+        res.status(500).json({ error: errorMessage });
     }
 });
 
@@ -430,9 +475,10 @@ app.post('/api/codes/:codeId/like', authMiddleware, async (req, res) => {
             }
         }
         return res.status(404).json({ error: 'Code not found' });
-    } catch (err) {
-        console.error('POST /api/codes/:codeId/like error:', err);
-        res.status(500).json({ error: err.message });
+    } catch (e) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        console.error('POST /api/codes/:codeId/like error:', errorMessage);
+        res.status(500).json({ error: errorMessage });
     }
 });
 
@@ -452,9 +498,10 @@ app.post('/api/codes/:codeId/view', authMiddleware, async (req, res) => {
             }
         }
         return res.status(404).json({ error: 'Code not found' });
-    } catch (err) {
-        console.error('POST /api/codes/:codeId/view error:', err);
-        res.status(500).json({ error: err.message });
+    } catch (e) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        console.error('POST /api/codes/:codeId/view error:', errorMessage);
+        res.status(500).json({ error: errorMessage });
     }
 });
 

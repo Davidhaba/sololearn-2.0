@@ -96,23 +96,184 @@ if (document.readyState === 'loading') {
     initApp();
 }
 
+function updateNotifEl(u = null) {
+    const notifEl = document.getElementById('notifCount');
+    if (!u) u = getAuthStoredUser();
+    if (notifEl && u) {
+        if (u.notifications && u.notifications.length >= 1) {
+            notifEl.textContent = u.notifications.length || 0;
+            notifEl.style.display = 'block';
+        } else {
+            notifEl.textContent = '0';
+            notifEl.style.display = 'none';
+        }
+    }
+}
+
+async function renderNotifications() {
+    const container = document.getElementById('notificationsScreen');
+    if (!container) return;
+    try { await updateUsers(); } catch { }
+    const user = getAuthStoredUser();
+    updateNotifEl(user);
+    const notes = Array.isArray(user?.notifications) ? user.notifications : [];
+    container.innerHTML = '';
+    if (!notes || notes.length === 0) {
+        const empty = document.createElement('div');
+        empty.style.cssText = `
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+        `;
+        empty.innerHTML = `
+            <div style="font-size: 32px; margin-bottom: 12px; opacity: 0.5;">
+                <i class="fas fa-bell-slash"></i>
+            </div>
+            <p style="margin: 0; font-size: 14px;">No notifications yet</p>
+        `;
+        container.appendChild(empty);
+        return;
+    }
+    const header = document.createElement('div');
+    header.style.cssText = `
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        margin-bottom: 16px;
+        gap: 8px;
+    `;
+    const actions = document.createElement('div');
+    actions.style.cssText = 'display: flex; gap: 8px;';
+    actions.innerHTML = `
+        <button id="markAllReadBtn" class="secondary-button" style="padding: 8px 12px; font-size: 13px;">
+            <i class="fas fa-check-double"></i> Mark all read
+        </button>
+        <button id="clearNotifBtn" class="secondary-button" style="padding: 8px 12px; font-size: 13px;">
+            <i class="fas fa-trash"></i> Clear all
+        </button>
+    `;
+    header.appendChild(actions);
+    container.appendChild(header);
+    const list = document.createElement('div');
+    list.style.cssText = 'display: grid; gap: 12px;';
+    notes.forEach((n, idx) => {
+        const it = document.createElement('div');
+        it.className = 'notifItem';
+        it.setAttribute('data-idx', String(idx));
+        it.style.cssText = `
+            padding: 16px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            ${n.read ? '' : 'border-left: 3px solid #6366f1; background: rgba(99, 102, 241, 0.05);'}
+        `;
+        const left = document.createElement('div');
+        left.style.cssText = 'flex: 1;';
+        const title = document.createElement('div');
+        title.style.cssText = 'font-weight: 600; font-size: 15px; color: var(--text-primary); margin-bottom: 4px;';
+        title.textContent = n.title || (n.text ? String(n.text).slice(0, 60) + (n.text.length > 60 ? '...' : '') : 'Notification');
+        const msg = document.createElement('div');
+        msg.style.cssText = 'color: var(--text-secondary); font-size: 13px; line-height: 1.4;';
+        msg.textContent = n.message || n.text || '';
+        left.appendChild(title);
+        left.appendChild(msg);
+        const right = document.createElement('div');
+        right.style.cssText = 'display: flex; flex-direction: column; align-items: flex-end; gap: 6px; min-width: 80px;';
+        const time = document.createElement('div');
+        time.style.cssText = 'font-size: 11px; color: var(--text-secondary);';
+        time.textContent = new Date(n.timestamp || Date.now()).toLocaleString();
+        const markBtn = document.createElement('button');
+        markBtn.className = 'secondary-button markReadBtn';
+        markBtn.style.cssText = `
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            ${n.read ? 'opacity: 0.5; cursor: not-allowed;' : ''}
+        `;
+        markBtn.textContent = n.read ? 'Read' : 'Mark read';
+        markBtn.disabled = !!n.read;
+        markBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            markNotificationRead(idx);
+            renderNotifications();
+        });
+        right.appendChild(time);
+        right.appendChild(markBtn);
+        it.appendChild(left);
+        it.appendChild(right);
+        list.appendChild(it);
+    });
+    container.appendChild(list);
+    document.getElementById('markAllReadBtn')?.addEventListener('click', () => {
+        markAllNotificationsRead();
+        renderNotifications();
+    });
+    document.getElementById('clearNotifBtn')?.addEventListener('click', () => {
+        if (confirm('Clear all notifications?')) {
+            clearAllNotifications();
+            renderNotifications();
+        }
+    });
+}
+
+function markNotificationRead(idx) {
+    const user = getAuthStoredUser();
+    if (!user || !Array.isArray(user.notifications)) return;
+    if (!user.notifications[idx]) return;
+
+    const notification = user.notifications[idx];
+    notification.read = true;
+    updateNotifEl(user);
+    persistNotificationOperation('mark_read', { notificationId: notification.id }).catch(() => { });
+}
+
+function markAllNotificationsRead() {
+    const user = getAuthStoredUser();
+    if (!user || !Array.isArray(user.notifications)) return;
+    const unreadIds = user.notifications
+        .filter(n => !n.read)
+        .map(n => n.id);
+    if (unreadIds.length === 0) return;
+    user.notifications = user.notifications.map(n => ({ ...n, read: true }));
+    updateNotifEl(user);
+    persistNotificationOperation('mark_all_read', { notificationIds: unreadIds }).catch(() => { });
+}
+
+function clearAllNotifications() {
+    const user = getAuthStoredUser();
+    if (!user) return;
+    const notificationIds = user.notifications.map(n => n.id);
+    user.notifications = [];
+    updateNotifEl(user);
+    persistNotificationOperation('clear_all', { notificationIds }).catch(() => { });
+    try { if (Array.isArray(AppState.users)) updateUsers().catch(() => { }); } catch (e) { }
+}
+
+async function persistNotificationOperation(action, data) {
+    if (typeof AuthService === 'undefined' || !AuthService.isAuthenticated()) return;
+    try {
+        await fetch('/auth/notifications', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+            body: JSON.stringify({ action, ...data })
+        });
+    } catch (e) {
+        console.warn('Failed to persist notification operation:', e);
+    }
+}
+
 function initializeEventListeners() {
     const currentUser = getAuthStoredUser();
     const streakEl = document.getElementById('streakCount');
     const livesEl = document.getElementById('livesCount');
-    const notifEl = document.getElementById('notifCount');
     if (currentUser) {
         if (streakEl) streakEl.textContent = currentUser.streak || 0;
         if (livesEl) livesEl.textContent = currentUser.lives || 0;
-        if (notifEl) {
-            if (currentUser.notifications && currentUser.notifications.length >= 1) {
-                notifEl.textContent = currentUser.notifications.length || 0;
-                notifEl.style.display = 'block';
-            } else {
-                notifEl.textContent = '0';
-                notifEl.style.display = 'none';
-            }
-        }
+        updateNotifEl(currentUser);
     }
 
     document.querySelectorAll('[data-open-screen]').forEach(button => {
@@ -126,6 +287,7 @@ function initializeEventListeners() {
             }
             else if (screenId === 'leaders') loadLeaderboard();
             else if (screenId === 'code') displayCodes('trending');
+            else if (screenId === 'notificationsScreen') renderNotifications();
         });
     });
 
@@ -152,14 +314,8 @@ function initializeEventListeners() {
     });
 
     document.getElementById('notifBtn').addEventListener('click', () => {
-        const currentUser = getAuthStoredUser();
-        if (currentUser && currentUser.notifications && currentUser.notifications.length >= 1) {
-            showNotification(`📢 You have ${currentUser.notifications.length || 0} notifications!`);
-            if (notifEl) notifEl.textContent = currentUser.notifications.length || 0;
-        } else {
-            showNotification("You have no notifications.");
-            if (notifEl) notifEl.textContent = '0';
-        }
+        changeScreen('notificationsScreen');
+        renderNotifications();
     });
 
     document.getElementById('menuBtn').addEventListener('click', () => {
@@ -404,6 +560,7 @@ function changeScreen(screenId) {
         'main': 0,
         'leaders': 1,
         'code': 2,
+        'notificationsScreen': 3,
     }
     const navEl = document.querySelector('#sideMenu #sideMenuNav');
     if (screens[screenId] !== -1) {
@@ -419,6 +576,7 @@ function changeScreen(screenId) {
         'leaders': 'Leaderboard',
         'code': 'Code',
         'userProfile': 'Profile',
+        'notificationsScreen': 'Notifications',
         'codeEditor': 'Code Editor',
         'profileEditor': 'Profile Editor'
     };
@@ -1342,6 +1500,37 @@ function discardCode() {
     AppState.currentEditingCode = null;
     fields.forEach(({ el }) => el.value = '');
     changeScreen('code');
+}
+
+// Test function to add sample notifications (for development)
+function addSampleNotifications() {
+    let user = getAuthStoredUser();
+    if (!user) user = {};
+    if (!Array.isArray(user.notifications)) user.notifications = [];
+
+    const samples = [
+        {
+            title: 'Welcome to SoloLearn 2.0!',
+            message: 'Thanks for joining our platform. Start coding and earn XP!',
+            timestamp: Date.now() - 86400000, // 1 day ago
+            read: false
+        },
+        {
+            title: 'New Achievement Unlocked',
+            message: 'Congratulations! You earned the "First Code" achievement.',
+            timestamp: Date.now() - 3600000, // 1 hour ago
+            read: false
+        },
+        {
+            title: 'Daily Streak Reminder',
+            message: 'Keep your coding streak alive! Code something today.',
+            timestamp: Date.now() - 1800000, // 30 min ago
+            read: true
+        }
+    ];
+
+    user.notifications.push(...samples);
+    renderNotifications(user);
 }
 
 if (!(typeof navigator === 'undefined' || navigator.userAgent.includes('wv'))) {
