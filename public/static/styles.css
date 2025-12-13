@@ -322,7 +322,7 @@ input[type="checkbox"]:checked::after {
 .topButton .text-danger {
     position: absolute;
     font-size: 10px;
-    font-weight: 700;
+    font-weight: bolder;
     background: linear-gradient(135deg, var(--danger), #dc2626);
     color: white;
     width: 18px;
@@ -331,6 +331,7 @@ input[type="checkbox"]:checked::after {
     display: flex;
     align-items: center;
     justify-content: center;
+    text-align: center;
     top: -5px;
     right: -5px;
     box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);

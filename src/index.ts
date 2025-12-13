@@ -89,7 +89,7 @@ app.post('/auth/register', async (req, res) => {
         }
         const passwordHash = hashPassword(password);
         const accountRef = await db.collection('accounts').add({
-            email, passwordHash, notifications: [{ id: 1, title: 'Welcome to SoloLearn 2.0!', message: 'Thanks for joining our platform. Start coding and earn XP!', timestamp: new Date(Date.now()).toISOString(), read: false }]
+            email, passwordHash, notifications: []
         });
 
         const token = createToken(accountRef.id, email);
@@ -109,6 +109,9 @@ app.post('/auth/register', async (req, res) => {
         res.status(201).json({
             token,
             user: { id: accountRef.id, email, name }
+        });
+        sendNotification(accountRef.id, { title: 'Welcome to SoloLearn 2.0!', text: 'Thanks for joining our platform. Start coding and earn XP!' }).catch((e: any) => {
+            console.error('Failed to send welcome notification:', e);
         });
     } catch (err) {
         console.error('POST /auth/register error:', err);
@@ -205,6 +208,18 @@ app.put('/auth/me', authMiddleware, async (req, res) => {
         res.status(500).json({ error: errorMessage });
     }
 });
+
+function sendNotification(userId: string, notification: { title: string; text: string; }) {
+    return db.collection('accounts').doc(userId).get().then(doc => {
+        if (!doc.exists) {
+            throw new Error('Account not found');
+        }
+        const data = doc.data();
+        const notifications = Array.isArray(data.notifications) ? data.notifications : [];
+        notifications.push({ id: Date.now(), title: notification.title, text: notification.text, timestamp: new Date(Date.now()).toISOString(), read: false });
+        return db.collection('accounts').doc(userId).update({ notifications });
+    });
+}
 
 app.put('/auth/notifications', authMiddleware, async (req, res) => {
     try {

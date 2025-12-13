@@ -98,8 +98,9 @@ function updateNotifEl(u = null) {
     const notifEl = document.getElementById('notifCount');
     if (!u) u = getAuthStoredUser();
     if (notifEl && u) {
-        if (u.notifications && u.notifications.length >= 1) {
-            notifEl.textContent = u.notifications.length || 0;
+        const unreadCount = Array.isArray(u.notifications) ? u.notifications.filter(n => !n.read).length : 0;
+        if (unreadCount && unreadCount >= 1) {
+            notifEl.textContent = unreadCount || 0;
             notifEl.style.display = 'block';
         } else {
             notifEl.textContent = '0';
@@ -183,7 +184,7 @@ async function renderNotifications() {
         right.style.cssText = 'display: flex; flex-direction: column; align-items: flex-end; gap: 6px; min-width: 80px;';
         const time = document.createElement('div');
         time.style.cssText = 'font-size: 11px; color: var(--text-secondary);';
-        time.textContent = new Date(n.timestamp || Date.now()).toLocaleString();
+        time.textContent = n.timestamp ? new Date(n.timestamp).toLocaleString() : '';
         const markBtn = document.createElement('button');
         markBtn.className = 'secondary-button markReadBtn';
         markBtn.style.cssText = `
@@ -221,12 +222,11 @@ async function renderNotifications() {
 function markNotificationRead(idx) {
     const user = getAuthStoredUser();
     if (!user || !Array.isArray(user.notifications)) return;
-    if (!user.notifications[idx]) return;
-
     const notification = user.notifications[idx];
+    if (!notification) return;
+
     notification.read = true;
     updateNotifEl(user);
-    console.log('Marking notification read:', notification);
     persistNotificationOperation('mark_read', { notificationId: notification.id }).catch(() => { });
 }
 
@@ -236,6 +236,7 @@ function markAllNotificationsRead() {
     const unreadIds = user.notifications
         .filter(n => !n.read)
         .map(n => n.id);
+    console.log('Marking notifications read:', unreadIds);
     if (unreadIds.length === 0) return;
     user.notifications = user.notifications.map(n => ({ ...n, read: true }));
     updateNotifEl(user);
