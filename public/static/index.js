@@ -258,13 +258,13 @@ async function persistNotificationOperation(action, data) {
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
             body: JSON.stringify({ action, ...data })
         });
-        const data = await res.json();
+        const resData = await res.json();
         if (!res.ok) {
-            if (data.error) throw new Error(data.error);
+            if (resData.error) throw new Error(resData.error);
             if (res.status) throw new Error(`status ${res.status}`);
             throw new Error('Unknown error');
         }
-        if (data.user) AppState.currentUser = data.user;
+        if (resData.user) AppState.currentUser = resData.user;
     } catch (e) {
         console.warn('Failed to persist notification operation.', e);
     }
