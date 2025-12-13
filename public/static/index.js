@@ -942,22 +942,22 @@ function filterCodes(filterType) {
                 if (viewsDiff !== 0) return viewsDiff;
                 const likesDiff = getLikes(b) - getLikes(a);
                 if (likesDiff !== 0) return likesDiff;
-                return new Date(b.timestamp) - new Date(a.timestamp);
+                return new Date(b.updatedAt) - new Date(a.updatedAt);
             });
             break;
         case 'myCode':
             const currentUser = getAuthStoredUser();
             if (!currentUser || !currentUser.id) return [];
-            codes = codes.filter(c => c.userid === currentUser.id).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            codes = codes.filter(c => c.userid === currentUser.id).sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
             break;
         case 'recent':
-            codes = codes.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            codes = codes.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
             break;
         case 'mostLiked':
             codes = codes.sort((a, b) => getLikes(b) - getLikes(a));
             break;
         default:
-            codes = codes.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            codes = codes.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
     }
     return codes;
 }
@@ -1083,7 +1083,7 @@ function buildCodeCard(code) {
                     ${createUserAvatar(user.photo, user.name, `class="codeAuthorAvatar"`)}
                     <div>
                         <p style="margin: 0; font-weight: 600; color: var(--text-primary);">${escapeHtml(user.name)}</p>
-                        <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--text-secondary);">${code.timestamp}</p>
+                        <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--text-secondary);">${code.updatedAt}</p>
                     </div>
                 </div>
                 <span class="codeBadge">${escapeHtml(code.language)}</span>
@@ -1129,7 +1129,7 @@ function showCodeDetail(code) {
             ${createUserAvatar(user.photo, user.name, `style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;"`)}
             <div style="flex: 1;">
                 <p style="margin: 0; font-weight: 600;">${escapeHtml(user.name)}</p>
-                <p class="code-timestamp" style="margin: 2px 0 0 0; font-size: 12px; color: var(--text-secondary);">${code.timestamp}</p>
+                <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--text-secondary);">${code.updatedAt}</p>
             </div>
             <div style="display: flex; gap: 12px;">
                 <div style="text-align: center;">
