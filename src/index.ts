@@ -6,6 +6,19 @@ const path = require('path');
 const fs = require('fs');
 const { hashPassword, verifyPassword, createToken, authMiddleware } = require('./auth-service');
 
+interface Code {
+    id: number;
+    userid: string;
+    title: string;
+    language: string;
+    description: string;
+    code: string;
+    views: number;
+    likedBy: string[];
+    createdAt: string;
+    updatedAt: string;
+}
+
 interface User {
     id?: string;
     name: string;
@@ -14,7 +27,7 @@ interface User {
     streak: number;
     achievements: string[];
     photo: string;
-    codes: string[];
+    codes: Code[];
     createdAt: string;
     updatedAt: string;
 }
@@ -54,7 +67,7 @@ app.get('/', (req, res) => {
 });
 
 app.get('/health', (req, res) => {
-    res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() })
+    res.status(200).json({ status: 'ok', timestamp: new Date().toLocaleString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: true }) });
 });
 
 app.post('/auth/register', async (req, res) => {
@@ -79,7 +92,7 @@ app.post('/auth/register', async (req, res) => {
 
         const token = createToken(accountRef.id, email);
         await db.collection('users').doc(accountRef.id).set({
-            accountId: accountRef.id,
+            id: accountRef.id,
             name,
             level: 1,
             xp: 0,
@@ -93,11 +106,7 @@ app.post('/auth/register', async (req, res) => {
 
         res.status(201).json({
             token,
-            user: {
-                id: accountRef.id,
-                email,
-                name
-            }
+            user: { id: accountRef.id, email, name }
         });
     } catch (err) {
         console.error('POST /auth/register error:', err);
@@ -192,7 +201,7 @@ app.get('/api/users', authMiddleware, async (req, res) => {
         const snapshot = await db.collection('users').get();
         const users = snapshot.docs.map(doc => ({
             id: doc.id,
-            ...doc.data()
+            ...doc.data() as User
         }));
         res.json(users);
     } catch (err) {
@@ -286,7 +295,7 @@ app.post('/api/codes', authMiddleware, async (req, res) => {
         if (!language.trim()) {
             return res.status(400).json({ error: 'Language are required' });
         }
-
+        const currDate = new Date().toISOString();
         const newCode = {
             id: Date.now(),
             userid: userId,
@@ -294,10 +303,10 @@ app.post('/api/codes', authMiddleware, async (req, res) => {
             language: language,
             description: description,
             code: code,
-            timestamp: new Date().toLocaleDateString('en-US'),
             views: 0,
             likedBy: [],
-            createdAt: new Date().toISOString()
+            createdAt: currDate,
+            updatedAt: currDate
         };
 
         const userDoc = await db.collection('users').doc(userId).get();
@@ -305,7 +314,7 @@ app.post('/api/codes', authMiddleware, async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        const userData = userDoc.data();
+        const userData = userDoc.data() as User;
         const codes = userData.codes || [];
         codes.push(newCode);
 
@@ -339,7 +348,7 @@ app.put('/api/codes/:codeId', authMiddleware, async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        const userData = userDoc.data();
+        const userData = userDoc.data() as User;
         const codes = userData.codes || [];
         const codeIndex = codes.findIndex(c => c.id === parseInt(codeId));
 
@@ -375,12 +384,12 @@ app.delete('/api/codes/:codeId', authMiddleware, async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        const userData = userDoc.data();
+        const userData = userDoc.data() as User;
         const codes = userData.codes || [];
         const codeIndex = codes.findIndex(c => c.id === parseInt(codeId));
 
         if (codeIndex === -1) {
-            return res.status(404).json({ error: 'Code not found' });
+            return res.status(404).json({ error: 'Code not found or you do not have permission to delete it' });
         }
 
         codes.splice(codeIndex, 1);
@@ -401,17 +410,14 @@ app.post('/api/codes/:codeId/like', authMiddleware, async (req, res) => {
         const snapshot = await db.collection('users').get();
         const user = req.user;
         for (const doc of snapshot.docs) {
-            const userData = doc.data();
+            const userData = doc.data() as User;
             const codes = userData.codes || [];
             const idx = codes.findIndex(c => String(c.id) === String(codeId));
             if (idx !== -1) {
                 const likedBy = Array.isArray(codes[idx].likedBy) ? codes[idx].likedBy : [];
                 const requesterId = req.user && req.user.userId ? req.user.userId : null;
-
-
                 let liked = false;
                 const alreadyIndex = requesterId ? likedBy.findIndex(u => String(u) === String(requesterId)) : -1;
-
                 if (alreadyIndex === -1 && requesterId) {
                     likedBy.push(requesterId);
                     liked = true;
@@ -419,15 +425,12 @@ app.post('/api/codes/:codeId/like', authMiddleware, async (req, res) => {
                     likedBy.splice(alreadyIndex, 1);
                     liked = false;
                 }
-
                 codes[idx].likedBy = likedBy;
                 codes[idx].updatedAt = new Date().toISOString();
-
                 await db.collection('users').doc(doc.id).update({ codes });
                 return res.json({ success: true, code: codes[idx], liked });
             }
         }
-
         return res.status(404).json({ error: 'Code not found' });
     } catch (err) {
         console.error('POST /api/codes/:codeId/like error:', err);

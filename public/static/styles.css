@@ -933,6 +933,24 @@ input[type="checkbox"]:checked::after {
     width: 130px;
 }
 
+.appNotification {
+    position: absolute;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    padding: 14px 24px;
+    border-radius: 12px;
+    font-weight: 600;
+    z-index: 1000;
+    animation: slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 12px 32px rgba(99, 102, 241, 0.3);
+    max-width: 90%;
+    text-align: center;
+    font-size: 15px;
+}
+
 @keyframes showIn {
     from {
         transform: translate(-50%, -50%) scale(0.6);
@@ -1062,5 +1080,10 @@ input[type="checkbox"]:checked::after {
     .filterBtn {
         padding: 8px 12px;
         font-size: 12px;
+    }
+
+    .appNotification {
+        font-size: 13px;
+        padding: 10px 16px;
     }
 }

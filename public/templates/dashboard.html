@@ -9,7 +9,7 @@
         crossorigin="anonymous" referrerpolicy="no-referrer" />
     <script>
         let serv_static = '/';
-        let isDebug = false;
+        let isDebug = true;
         if (isDebug) serv_static = '../static/';
         document.head.appendChild(Object.assign(document.createElement('link'), { rel: 'stylesheet', href: serv_static + 'styles.css' }));
     </script>

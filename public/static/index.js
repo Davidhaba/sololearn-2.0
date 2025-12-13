@@ -863,35 +863,20 @@ function updateProfileImage(user) {
 
 function showNotification(message) {
     const hideEl = (el) => {
+        if (!el) return;
         el.style.animation = 'slideDown 0.2s ease-in forwards';
         setTimeout(() => el.remove(), 200);
     };
     const existing = document.querySelectorAll('.appNotification');
     if (existing && existing.length) {
-        setTimeout(() => showNotification(message), 0);
         existing.forEach(n => hideEl(n));
+        setTimeout(() => showNotification(message), 0);
         return;
     }
     const notification = document.createElement('div');
     notification.className = 'appNotification';
-    notification.style.cssText = `
-        position: absolute;
-        bottom: 80px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: linear-gradient(135deg, var(--primary), var(--secondary));
-        color: white;
-        padding: 14px 24px;
-        border-radius: 12px;
-        font-weight: 600;
-        z-index: 1000;
-        animation: slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-        box-shadow: 0 12px 32px rgba(99, 102, 241, 0.3);
-        max-width: 90%;
-        text-align: center;
-    `;
     notification.textContent = message;
-    setTimeout(() => hideEl(notification), 3000);
+    setTimeout(() => hideEl(notification || null), 3000);
     notification.addEventListener('click', () => hideEl(notification));
     document.body.appendChild(notification);
 }
@@ -1171,6 +1156,7 @@ function showCodeDetail(code) {
 
 function openCodeEditor(codeToEdit = null) {
     AppState.currentEditingCode = codeToEdit;
+    changeScreen('codeEditor');
 
     document.getElementById('editorTitle').value = (codeToEdit && codeToEdit.title) ? codeToEdit.title : '';
     document.getElementById('editorLanguage').value = (codeToEdit && codeToEdit.language) ? codeToEdit.language : 'SelectLanguage';
@@ -1185,7 +1171,6 @@ function openCodeEditor(codeToEdit = null) {
         publishBtn.disabled = false;
         publishBtn.style.opacity = '1';
     }
-    changeScreen('codeEditor');
     document.getElementById('editorTitle').focus();
 }
 
@@ -1309,18 +1294,26 @@ async function deleteCodeOnServer(codeId) {
 }
 
 function discardCode() {
-    const title = document.getElementById('editorTitle').value.trim();
-    const code = document.getElementById('editorContent').value.trim();
-    if (title || code) {
-        if (!confirm('Are you sure you want to discard your changes?')) {
-            return;
+    const fields = [
+        { el: document.getElementById('editorTitle'), key: 'title' },
+        { el: document.getElementById('editorLanguage'), key: 'language' },
+        { el: document.getElementById('editorDescription'), key: 'description' },
+        { el: document.getElementById('editorContent'), key: 'code' }
+    ];
+    const currCode = AppState.currentEditingCode;
+    const hasChanges = fields.some(({ el, key }) => {
+        const origValue = el.value.trim();
+        if (currCode) {
+            const currValue = currCode[key];
+            return currValue && currValue !== origValue;
+        } else {
+            if (key === 'language') return origValue !== 'SelectLanguage';
+            return origValue !== '';
         }
-    }
+    });
+    if (hasChanges && !confirm('Are you sure you want to discard your changes?')) return;
     AppState.currentEditingCode = null;
-    document.getElementById('editorTitle').value = '';
-    document.getElementById('editorLanguage').value = '';
-    document.getElementById('editorDescription').value = '';
-    document.getElementById('editorContent').value = '';
+    fields.forEach(({ el }) => el.value = '');
     changeScreen('code');
 }
 
