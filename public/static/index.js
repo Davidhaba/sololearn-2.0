@@ -109,11 +109,14 @@ function updateNotifEl(u = null) {
     }
 }
 
-async function renderNotifications() {
+async function renderNotifications(user = null) {
     const container = document.getElementById('notificationsScreen');
     if (!container) return;
-    try { await updateUsers(); } catch { }
-    const user = getAuthStoredUser();
+    if (!user) {
+        try { await updateUsers(); } catch { }
+        user = getAuthStoredUser();
+    }
+    if (!user) return;
     updateNotifEl(user);
     const notes = Array.isArray(user?.notifications) ? user.notifications : [];
     container.innerHTML = '';
@@ -148,7 +151,7 @@ async function renderNotifications() {
             <i class="fas fa-check-double"></i> Mark all read
         </button>
         <button id="clearNotifBtn" class="secondary-button" style="padding: 8px 12px; font-size: 13px;">
-            <i class="fas fa-trash"></i> Clear all
+            <i class="fas fa-trash"></i> Clear read
         </button>
     `;
     header.appendChild(actions);
@@ -198,7 +201,6 @@ async function renderNotifications() {
         markBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             markNotificationRead(idx);
-            renderNotifications();
         });
         right.appendChild(time);
         right.appendChild(markBtn);
@@ -209,12 +211,10 @@ async function renderNotifications() {
     container.appendChild(list);
     document.getElementById('markAllReadBtn')?.addEventListener('click', () => {
         markAllNotificationsRead();
-        renderNotifications();
     });
     document.getElementById('clearNotifBtn')?.addEventListener('click', () => {
-        if (confirm('Clear all notifications?')) {
-            clearAllNotifications();
-            renderNotifications();
+        if (confirm('Clear all read notifications?')) {
+            clearReadNotifications();
         }
     });
 }
@@ -242,13 +242,14 @@ function markAllNotificationsRead() {
     persistNotificationOperation('mark_all_read', { notificationIds: unreadIds }).catch(() => { });
 }
 
-function clearAllNotifications() {
+function clearReadNotifications() {
     const user = getAuthStoredUser();
     if (!user) return;
-    const notificationIds = user.notifications.map(n => n.id);
-    user.notifications = [];
+    const unreadNotifications = user.notifications.filter(n => !n.read);
+    const unreadIds = unreadNotifications.map(n => n.id);
+    user.notifications = unreadNotifications;
     updateNotifEl(user);
-    persistNotificationOperation('clear_all', { notificationIds }).catch(() => { });
+    persistNotificationOperation('clear_all', { notificationIds: unreadIds }).catch(() => { });
 }
 
 async function persistNotificationOperation(action, data) {
@@ -265,7 +266,10 @@ async function persistNotificationOperation(action, data) {
             if (res.status) throw new Error(`status ${res.status}`);
             throw new Error('Unknown error');
         }
-        if (resData.user) AppState.currentUser = resData.user;
+        if (resData.user) {
+            AppState.currentUser = resData.user;
+            renderNotifications(AppState.currentUser);
+        } else renderNotifications();
     } catch (e) {
         console.warn('Failed to persist notification operation.', e);
     }
