@@ -607,7 +607,7 @@ input[type="checkbox"]:checked::after {
 
 #codeContent {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 16px;
     position: relative;
     min-height: 200px;
@@ -1092,4 +1092,15 @@ input[type="checkbox"]:checked::after {
         font-size: 13px;
         padding: 10px 16px;
     }
+}
+
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+.skeleton {
+    background: linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.1) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
 }

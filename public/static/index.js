@@ -30,6 +30,186 @@ function getToken() {
     });
 })();
 
+function getSkeletonHtml(type) {
+    if (type === 'notifications') {
+        return `
+            <div style="padding: 20px;">
+                <div style="display: flex; align-items: center; gap: 12px; padding: 16px; background: rgba(255, 255, 255, 0.02); border-radius: 8px; margin-bottom: 12px; border: 1px solid rgba(255, 255, 255, 0.06);">
+                    <div class="skeleton" style="width: 40px; height: 40px; border-radius: 8px;"></div>
+                    <div style="flex: 1;">
+                        <div class="skeleton" style="height: 16px; border-radius: 4px; margin-bottom: 8px;"></div>
+                        <div class="skeleton" style="height: 12px; width: 70%; border-radius: 4px;"></div>
+                    </div>
+                    <div class="skeleton" style="width: 60px; height: 24px; border-radius: 4px;"></div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px; padding: 16px; background: rgba(255, 255, 255, 0.02); border-radius: 8px; margin-bottom: 12px; border: 1px solid rgba(255, 255, 255, 0.06);">
+                    <div class="skeleton" style="width: 40px; height: 40px; border-radius: 8px;"></div>
+                    <div style="flex: 1;">
+                        <div class="skeleton" style="height: 16px; border-radius: 4px; margin-bottom: 8px;"></div>
+                        <div class="skeleton" style="height: 12px; width: 50%; border-radius: 4px;"></div>
+                    </div>
+                    <div class="skeleton" style="width: 60px; height: 24px; border-radius: 4px;"></div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px; padding: 16px; background: rgba(255, 255, 255, 0.02); border-radius: 8px; margin-bottom: 12px; border: 1px solid rgba(255, 255, 255, 0.06);">
+                    <div class="skeleton" style="width: 40px; height: 40px; border-radius: 8px;"></div>
+                    <div style="flex: 1;">
+                        <div class="skeleton" style="height: 16px; border-radius: 4px; margin-bottom: 8px;"></div>
+                        <div class="skeleton" style="height: 12px; width: 80%; border-radius: 4px;"></div>
+                    </div>
+                    <div class="skeleton" style="width: 60px; height: 24px; border-radius: 4px;"></div>
+                </div>
+            </div>
+        `;
+    } else if (type === 'leaderboard') {
+        return `
+            <div style="padding: 20px;">
+                <div style="display: flex; align-items: center; gap: 12px; padding: 14px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(236, 72, 153, 0.05)); border-radius: 12px; margin-bottom: 10px; border: 1px solid rgba(148, 163, 184, 0.1);">
+                    <div class="skeleton" style="width: 36px; height: 36px; border-radius: 8px;"></div>
+                    <div style="flex: 1;">
+                        <div class="skeleton" style="height: 16px; border-radius: 4px; margin-bottom: 6px;"></div>
+                        <div class="skeleton" style="height: 12px; width: 60%; border-radius: 4px;"></div>
+                    </div>
+                    <div class="skeleton" style="width: 40px; height: 20px; border-radius: 4px;"></div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px; padding: 14px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(236, 72, 153, 0.05)); border-radius: 12px; margin-bottom: 10px; border: 1px solid rgba(148, 163, 184, 0.1);">
+                    <div class="skeleton" style="width: 36px; height: 36px; border-radius: 8px;"></div>
+                    <div style="flex: 1;">
+                        <div class="skeleton" style="height: 16px; border-radius: 4px; margin-bottom: 6px;"></div>
+                        <div class="skeleton" style="height: 12px; width: 50%; border-radius: 4px;"></div>
+                    </div>
+                    <div class="skeleton" style="width: 40px; height: 20px; border-radius: 4px;"></div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px; padding: 14px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(236, 72, 153, 0.05)); border-radius: 12px; margin-bottom: 10px; border: 1px solid rgba(148, 163, 184, 0.1);">
+                    <div class="skeleton" style="width: 36px; height: 36px; border-radius: 8px;"></div>
+                    <div style="flex: 1;">
+                        <div class="skeleton" style="height: 16px; border-radius: 4px; margin-bottom: 6px;"></div>
+                        <div class="skeleton" style="height: 12px; width: 70%; border-radius: 4px;"></div>
+                    </div>
+                    <div class="skeleton" style="width: 40px; height: 20px; border-radius: 4px;"></div>
+                </div>
+            </div>
+        `;
+    } else if (type === 'profile') {
+        return `
+            <div style="width: 100%;">
+                <div class="skeleton" style="width: 140px; height: 140px; border-radius: 50%; margin: 20px auto 16px;"></div>
+                <div style="padding: 0 20px;">
+                    <div class="skeleton" style="height: 28px; border-radius: 4px; margin-bottom: 4px; width: 60%; margin-left: auto; margin-right: auto;"></div>
+                    <div class="skeleton" style="height: 16px; border-radius: 4px; margin-bottom: 12px; width: 40%; margin-left: auto; margin-right: auto;"></div>
+                    
+                    <div style="width: 100%; background: rgba(99, 102, 241, 0.1); border-radius: 12px; padding: 15px; margin-bottom: 20px;">
+                        <div class="skeleton" style="height: 12px; border-radius: 4px; margin-bottom: 8px; width: 50%;"></div>
+                        <div class="skeleton" style="height: 8px; border-radius: 10px; margin-bottom: 8px;"></div>
+                        <div class="skeleton" style="height: 12px; border-radius: 4px; width: 60%;"></div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div style="background: rgba(99, 102, 241, 0.1); border-radius: 12px; padding: 15px; text-align: center;">
+                            <div class="skeleton" style="height: 28px; border-radius: 4px; margin-bottom: 8px;"></div>
+                            <div class="skeleton" style="height: 12px; border-radius: 4px;"></div>
+                        </div>
+                        <div style="background: rgba(236, 72, 153, 0.1); border-radius: 12px; padding: 15px; text-align: center;">
+                            <div class="skeleton" style="height: 28px; border-radius: 4px; margin-bottom: 8px;"></div>
+                            <div class="skeleton" style="height: 12px; border-radius: 4px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    } else if (type === 'codes') {
+        return `
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; padding: 20px;">
+                <div style="display: flex; flex-direction: column; background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(236, 72, 153, 0.05)); border: 1px solid rgba(148, 163, 184, 0.1); border-radius: 12px; padding: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 12px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div class="skeleton" style="width: 36px; height: 36px; border-radius: 50%;"></div>
+                            <div>
+                                <div class="skeleton" style="height: 14px; width: 80px; border-radius: 4px; margin-bottom: 2px;"></div>
+                                <div class="skeleton" style="height: 12px; width: 60px; border-radius: 4px;"></div>
+                            </div>
+                        </div>
+                        <div class="skeleton" style="width: 50px; height: 20px; border-radius: 6px;"></div>
+                    </div>
+                    <div class="skeleton" style="height: 16px; border-radius: 4px; margin-bottom: 8px;"></div>
+                    <div class="skeleton" style="height: 13px; border-radius: 4px; margin-bottom: 12px;"></div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+                        <div style="display: flex; gap: 16px; flex: 1;">
+                            <div class="skeleton" style="width: 40px; height: 20px; border-radius: 4px;"></div>
+                            <div class="skeleton" style="width: 30px; height: 20px; border-radius: 4px;"></div>
+                        </div>
+                        <div class="skeleton" style="width: 50px; height: 20px; border-radius: 4px;"></div>
+                    </div>
+                </div>
+                <div style="display: flex; flex-direction: column; background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(236, 72, 153, 0.05)); border: 1px solid rgba(148, 163, 184, 0.1); border-radius: 12px; padding: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 12px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div class="skeleton" style="width: 36px; height: 36px; border-radius: 50%;"></div>
+                            <div>
+                                <div class="skeleton" style="height: 14px; width: 70px; border-radius: 4px; margin-bottom: 2px;"></div>
+                                <div class="skeleton" style="height: 12px; width: 50px; border-radius: 4px;"></div>
+                            </div>
+                        </div>
+                        <div class="skeleton" style="width: 45px; height: 20px; border-radius: 6px;"></div>
+                    </div>
+                    <div class="skeleton" style="height: 16px; border-radius: 4px; margin-bottom: 8px;"></div>
+                    <div class="skeleton" style="height: 13px; border-radius: 4px; margin-bottom: 12px;"></div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+                        <div style="display: flex; gap: 16px; flex: 1;">
+                            <div class="skeleton" style="width: 40px; height: 20px; border-radius: 4px;"></div>
+                            <div class="skeleton" style="width: 30px; height: 20px; border-radius: 4px;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div style="display: flex; flex-direction: column; background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(236, 72, 153, 0.05)); border: 1px solid rgba(148, 163, 184, 0.1); border-radius: 12px; padding: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 12px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div class="skeleton" style="width: 36px; height: 36px; border-radius: 50%;"></div>
+                            <div>
+                                <div class="skeleton" style="height: 14px; width: 90px; border-radius: 4px; margin-bottom: 2px;"></div>
+                                <div class="skeleton" style="height: 12px; width: 70px; border-radius: 4px;"></div>
+                            </div>
+                        </div>
+                        <div class="skeleton" style="width: 55px; height: 20px; border-radius: 6px;"></div>
+                    </div>
+                    <div class="skeleton" style="height: 16px; border-radius: 4px; margin-bottom: 8px;"></div>
+                    <div class="skeleton" style="height: 13px; border-radius: 4px; margin-bottom: 12px;"></div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+                        <div style="display: flex; gap: 16px; flex: 1;">
+                            <div class="skeleton" style="width: 40px; height: 20px; border-radius: 4px;"></div>
+                            <div class="skeleton" style="width: 30px; height: 20px; border-radius: 4px;"></div>
+                        </div>
+                        <div style="display: flex; gap: 6px;">
+                            <div class="skeleton" style="width: 40px; height: 20px; border-radius: 4px;"></div>
+                            <div class="skeleton" style="width: 35px; height: 20px; border-radius: 4px;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div style="display: flex; flex-direction: column; background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(236, 72, 153, 0.05)); border: 1px solid rgba(148, 163, 184, 0.1); border-radius: 12px; padding: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 12px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div class="skeleton" style="width: 36px; height: 36px; border-radius: 50%;"></div>
+                            <div>
+                                <div class="skeleton" style="height: 14px; width: 75px; border-radius: 4px; margin-bottom: 2px;"></div>
+                                <div class="skeleton" style="height: 12px; width: 55px; border-radius: 4px;"></div>
+                            </div>
+                        </div>
+                        <div class="skeleton" style="width: 48px; height: 20px; border-radius: 6px;"></div>
+                    </div>
+                    <div class="skeleton" style="height: 16px; border-radius: 4px; margin-bottom: 8px;"></div>
+                    <div class="skeleton" style="height: 13px; border-radius: 4px; margin-bottom: 12px;"></div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+                        <div style="display: flex; gap: 16px; flex: 1;">
+                            <div class="skeleton" style="width: 40px; height: 20px; border-radius: 4px;"></div>
+                            <div class="skeleton" style="width: 30px; height: 20px; border-radius: 4px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    return '';
+}
+
 function updateConsoleCount() {
     try {
         const btn = document.getElementById('errorsCount');
@@ -120,7 +300,7 @@ async function renderNotifications(user = null) {
     };
     const container = document.getElementById('notificationsScreen');
     if (!container) return;
-    container.innerHTML = '';
+    container.innerHTML = getSkeletonHtml('notifications');
     if (!user) {
         try { await updateUsers(); } catch { }
         user = getAuthStoredUser();
@@ -601,7 +781,7 @@ async function updateUsers() {
 
 async function loadProfileById(id = null) {
     const userScreen = document.getElementById('userProfile');
-    userScreen.innerHTML = `<div style="color:var(--text-secondary)"><i class="fas fa-spinner fa-spin"></i> Loading profile...</div>`;
+    userScreen.innerHTML = getSkeletonHtml('profile');
 
     const showFallback = () => {
         userScreen.innerHTML = `<div style="color:var(--text-secondary)">Failed to load profile</div>`;
@@ -724,12 +904,7 @@ function createUserAvatar(photoUrl, name, attrs = {}) {
 async function loadLeaderboard() {
     let errMsg;
     const leaderboardContent = document.getElementById('leaderboardContent');
-    leaderboardContent.innerHTML = `
-        <div style="display:flex;align-items:center;gap:12px;color:var(--text-secondary);">
-            <div style="width:18px;height:18px;border-radius:50%;border:3px solid rgba(255,255,255,0.08);border-top-color:var(--primary);animation:spin 0.9s linear infinite"></div>
-            <div>Loading leaderboard...</div>
-        </div>
-    `;
+    leaderboardContent.innerHTML = getSkeletonHtml('leaderboard');
     try {
         await updateUsers();
     } catch (err) {
@@ -1131,6 +1306,7 @@ function displayCodes(filterType) {
     document.querySelector(`#code .filterBtn[data-filter="${filterType}"]`).classList.add('active');
 
     const container = document.getElementById('codeContent');
+    container.innerHTML = getSkeletonHtml('codes');
     const codes = filterCodes(filterType);
     if (!codes || codes.length === 0) {
         container.innerHTML = `

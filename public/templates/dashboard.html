@@ -241,24 +241,15 @@
         </div>
     </div>
 
-    <script src="/authService.js"></script>
+    <script src="../static/authService.js"></script>
     <script src="/router.js"></script>
+    <script src="../static/index.js"></script>
     <script>
-        async function init() {
+        document.addEventListener('DOMContentLoaded', () => {
             if (typeof AuthService === 'undefined' || typeof Router === 'undefined') {
                 console.error('Services not loaded, try refreshing the page.');
-                return;
             }
-            const s = document.createElement('script');
-            s.src = '../static/index.js';
-            document.body.appendChild(s);
-        };
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', init);
-        } else {
-            init();
-        }
-
+        });
     </script>
     <script>
         function handleLogout() {
