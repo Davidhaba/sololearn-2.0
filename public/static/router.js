@@ -23,7 +23,7 @@ const Router = (() => {
 
     const init = async () => {
         const isAuth = await checkAuth();
-        const currentPage = window.location.pathname.split('/').pop() || '/';
+        const currentPage = '/' + window.location.pathname.split('/').pop() || '';
 
         if (!isAuth && currentPage !== routers.auth) {
             redirectTo(routers.auth);
@@ -35,10 +35,6 @@ const Router = (() => {
 
     return { init, redirectTo, checkAuth, routers };
 })();
-if (window.readyState === 'loading') {
-    window.addEventListener('DOMContentLoaded', () => {
-        Router.init();
-    });
-} else {
+window.addEventListener('DOMContentLoaded', () => {
     Router.init();
-}
+});
