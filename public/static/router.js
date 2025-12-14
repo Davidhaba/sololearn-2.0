@@ -32,7 +32,13 @@ const Router = (() => {
             redirectTo(routers.dashboard);
         }
     };
-    init();
 
     return { init, redirectTo, checkAuth, routers };
 })();
+if (window.readyState === 'loading') {
+    window.addEventListener('DOMContentLoaded', () => {
+        Router.init();
+    });
+} else {
+    Router.init();
+}
