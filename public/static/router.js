@@ -1,5 +1,9 @@
 const Router = (() => {
-    const PUBLIC_PAGES = ['dashboard', '/auth', '/index', '/'];
+    const routers = {
+        auth: '/auth',
+        authLogin: '/auth#login',
+        dashboard: '/dashboard'
+    };
 
     const redirectTo = (page) => {
         window.location.href = page;
@@ -17,26 +21,18 @@ const Router = (() => {
         return true;
     };
 
-    const isPublicPage = () => {
-        const path = window.location.pathname;
-        return PUBLIC_PAGES.some(page => path.includes(page));
-    };
-
     const init = async () => {
         const isAuth = await checkAuth();
         const currentPage = window.location.pathname.split('/').pop() || '/';
 
-        if (!isAuth && currentPage !== "auth") {
-            redirectTo('/auth');
-        } else if (isAuth && currentPage !== "dashboard") {
+        if (!isAuth && currentPage !== routers.auth) {
+            redirectTo(routers.auth);
+        } else if (isAuth && currentPage !== routers.dashboard) {
             console.log('✅ Already logged in, redirecting to dashboard...');
-            redirectTo('/dashboard');
+            redirectTo(routers.dashboard);
         }
     };
+    init();
 
-    return { init, redirectTo, checkAuth, isPublicPage };
+    return { init, redirectTo, checkAuth, routers };
 })();
-
-document.addEventListener('DOMContentLoaded', () => {
-    Router.init();
-});

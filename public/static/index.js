@@ -110,30 +110,29 @@ function updateNotifEl(u = null) {
 }
 
 async function renderNotifications(user = null) {
+    const getEmptyHtml = (text, icon = 'fas fa-inbox') => {
+        return `<div style="text-align:center;padding:40px 20px;color:var(--text-secondary);">
+                    <div style="font-size: 32px; margin-bottom: 12px; opacity: 0.5;">
+                        <i class="${icon}"></i>
+                    </div>
+                    <p style="margin: 0; font-size: 14px;">${text}</p>
+                </div>`;
+    };
     const container = document.getElementById('notificationsScreen');
     if (!container) return;
+    container.innerHTML = '';
     if (!user) {
         try { await updateUsers(); } catch { }
         user = getAuthStoredUser();
     }
-    if (!user) return;
+    if (!user) {
+        container.innerHTML = getEmptyHtml('Please log in to view notifications.', 'fas fa-user-slash');
+        return;
+    }
     updateNotifEl(user);
     const notes = Array.isArray(user?.notifications) ? user.notifications : [];
-    container.innerHTML = '';
     if (!notes || notes.length === 0) {
-        const empty = document.createElement('div');
-        empty.style.cssText = `
-            text-align: center;
-            padding: 40px 20px;
-            color: var(--text-secondary);
-        `;
-        empty.innerHTML = `
-            <div style="font-size: 32px; margin-bottom: 12px; opacity: 0.5;">
-                <i class="fas fa-bell-slash"></i>
-            </div>
-            <p style="margin: 0; font-size: 14px;">No notifications yet</p>
-        `;
-        container.appendChild(empty);
+        container.innerHTML = getEmptyHtml('No notifications yet.', 'fas fa-bell-slash');
         return;
     }
     const header = document.createElement('div');
@@ -388,8 +387,8 @@ function updateMenuAuthButton() {
         btn.className = 'primary-button';
         btn.onclick = () => {
             closeSideMenu();
-            if (typeof Router !== 'undefined' && Router.redirectTo) {
-                Router.redirectTo('/auth');
+            if (typeof Router !== 'undefined' && Router.redirectTo && Router.routers) {
+                Router.redirectTo(Router.routers.authLogin);
             } else {
                 alert('Please log in via the /auth page.');
             }
@@ -1342,7 +1341,7 @@ async function showCodeDetail(code) {
             }
         }
     } catch (e) {
-        if (e && isDebug) console.warn('Failed to increment views:', e.message);
+        if (e) console.warn('Failed to increment views:', e.message);
     }
 }
 

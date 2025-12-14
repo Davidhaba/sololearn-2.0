@@ -7,12 +7,7 @@
     <title>SoloLearn 2.0: Modern Mobile Version</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
         crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <script>
-        let serv_static = '/';
-        let isDebug = false;
-        if (isDebug) serv_static = '../static/';
-        document.head.appendChild(Object.assign(document.createElement('link'), { rel: 'stylesheet', href: serv_static + 'styles.css' }));
-    </script>
+    <link rel="stylesheet" href="../static/styles.css" />
 </head>
 
 <body>
@@ -79,7 +74,7 @@
             <div id="userProfile" class="appScreen">
                 <p style="font-size: 14px; margin-top: 20px; color: var(--text-secondary);">Nothing here.</p>
             </div>
-            
+
             <div id="notificationsScreen" class="appScreen"></div>
 
             <div id="codeEditor" class="appScreen">
@@ -211,7 +206,7 @@
         </nav>
 
         <div class="sideMenuItem" id="toggleDebug" style="padding: 15px 10px; font-size: 14px;">
-            <input type="checkbox" onchange="toggleDebug(this)" id="debugToggle" style="float:right;">
+            <input type="checkbox" onchange="toggleDebug(this.checked)" id="debugToggle" style="float:right;">
             <label for="debugToggle">Debug Mode</label>
         </div>
 
@@ -246,20 +241,24 @@
         </div>
     </div>
 
+    <script src="../static/authService.js"></script>
+    <script src="../static/router.js"></script>
     <script>
-        (async () => {
-            for (const f of ['authService.js', 'router.js', 'index.js']) {
-                await new Promise((r, e) => {
-                    const s = document.createElement('script');
-                    s.src = serv_static + f;
-                    s.onload = () => r(s);
-                    s.onerror = () => e();
-                    document.head.appendChild(s);
-                });
+        async function init() {
+            if (typeof AuthService === 'undefined' || typeof Router === 'undefined') {
+                console.error('Services not loaded, try refreshing the page.');
+                return;
             }
-            if (document.readyState === 'loading') await new Promise(r => document.addEventListener('DOMContentLoaded', r));
-            if (!isDebug) await Router.init();
-        })();
+            const s = document.createElement('script');
+            s.src = '../static/index.js';
+            document.body.appendChild(s);
+        };
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+
     </script>
     <script>
         function handleLogout() {
@@ -290,16 +289,15 @@
                 <div onClick="cancelLogout()" style="cursor:pointer; font-size:14px; color: white; float: right; line-height: 1;">X</div><div style="font-size:48px; margin: 16px;">👋</div>
             </div>`;
             AuthService.logout();
-            Router.redirectTo('/auth');
+            Router.redirectTo(Router.routers.authLogin);
         }
 
         function cancelLogout() {
             document.getElementById('logoutModal').style.display = 'none';
         }
 
-        function toggleDebug(el) {
-            isDebug = el.checked;
-            if (isDebug) {
+        function toggleDebug(isChecked = false) {
+            if (isChecked) {
                 enableDebug();
             } else {
                 disableDebug();

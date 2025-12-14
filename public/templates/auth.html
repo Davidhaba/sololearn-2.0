@@ -260,6 +260,7 @@
             height: 100%;
             transform: translateX(-100%);
             opacity: 0;
+            pointer-events: none;
             transition: transform 0.2s ease, opacity 0.2s ease;
         }
 
@@ -272,7 +273,7 @@
         }
 
         .tab-contents .tab-content.active {
-            display: block;
+            pointer-events: all;
             transform: translateX(0);
             opacity: 1;
             position: relative;
@@ -485,20 +486,8 @@
     <script src="router.js"></script>
 
     <script>
-        document.querySelectorAll('[data-tab]').forEach(link => {
-            link.addEventListener('click', () => {
-                const tab = link.getAttribute('data-tab');
-                switchTab(tab);
-            });
-            link.addEventListener('keydown', (e) => {
-                const key = e.key || e.keyCode;
-                if (String(key) === 'Enter' || Number(key) === 13) {
-                    e.preventDefault();
-                    link.click();
-                }
-            });
-        });
         let switchTabTimer = [];
+        let hashTimer;
         function switchTab(tab = null) {
             if (!tab || (tab !== 'login' && tab !== 'register') || !document.getElementById(tab)) return;
             document.querySelectorAll('.tab-content')?.forEach(el => {
@@ -509,13 +498,13 @@
                 }
                 if (tabId === tab) {
                     el.style.display = '';
-                    setTimeout(() => el.classList.add('active'), 10);
+                    setTimeout(() => el.classList.add('active'), 20);
                 } else {
-                    setTimeout(() => el.classList.remove('active'), 10);
+                    setTimeout(() => el.classList.remove('active'), 20);
                     switchTabTimer[tabId] = setTimeout(() => {
                         switchTabTimer[tabId] = null;
                         el.style.display = 'none';
-                    }, 300);
+                    }, 200);
                 }
             });
             document.querySelectorAll('.tab-btn')?.forEach(btn => {
@@ -536,6 +525,10 @@
 
         async function handleLogin(e) {
             e.preventDefault();
+            if (typeof AuthService === 'undefined' || typeof Router === 'undefined') {
+                showMessage('loginMessage', '❌ Services not loaded, try refreshing the page.', 'error');
+                return;
+            }
             const btn = document.getElementById('loginBtn');
             const email = document.getElementById('loginEmail').value.trim();
             const password = document.getElementById('loginPassword').value;
@@ -548,7 +541,7 @@
                 if (!data.user) throw new Error('Invalid response from server');
                 showMessage('loginMessage', '✅ Login successful! Redirecting...', 'success');
                 setTimeout(() => {
-                    Router.redirectTo('dashboard');
+                    Router.redirectTo(Router.routers.dashboard);
                 }, 100);
             } catch (err) {
                 showMessage('loginMessage', `❌ ${err.message}`, 'error');
@@ -559,6 +552,10 @@
 
         async function handleRegister(e) {
             e.preventDefault();
+            if (typeof AuthService === 'undefined' || typeof Router === 'undefined') {
+                showMessage('registerMessage', '❌ Services not loaded, try refreshing the page.', 'error');
+                return;
+            }
             const btn = document.getElementById('registerBtn');
             const name = document.getElementById('regName').value.trim();
             const email = document.getElementById('regEmail').value.trim();
@@ -574,16 +571,48 @@
             btn.disabled = true;
 
             try {
-                await AuthService.register(email, password, name);
+                const data = await AuthService.register(email, password, name);
+                if (!data.user) throw new Error('Invalid response from server');
                 showMessage('registerMessage', '✅ Registration successful! Redirecting...', 'success');
                 setTimeout(() => {
-                    Router.redirectTo('dashboard');
+                    Router.redirectTo(Router.routers.dashboard);
                 }, 100);
             } catch (err) {
                 showMessage('registerMessage', `❌ ${err.message}`, 'error');
                 btn.classList.remove('loading');
                 btn.disabled = false;
             }
+        }
+        function init() {
+            switchTabFromHash();
+            document.querySelectorAll('[data-tab]').forEach(link => {
+                link.addEventListener('click', () => {
+                    const tab = link.getAttribute('data-tab');
+                    if (tab) window.location.hash = tab;
+                });
+                link.addEventListener('keydown', (e) => {
+                    const key = e.key || e.keyCode;
+                    if (String(key) === 'Enter' || Number(key) === 13) {
+                        e.preventDefault();
+                        link.click();
+                    }
+                });
+            });
+            window.addEventListener('hashchange', (e) => {
+                e.preventDefault();
+                switchTabFromHash();
+            });
+        }
+        function switchTabFromHash() {
+            const authTab = window.location.hash === '#login' ? 'login' : 'register' || null;
+            switchTab(authTab);
+        }
+        if (window.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                init();
+            });
+        } else {
+            init();
         }
     </script>
 </body>

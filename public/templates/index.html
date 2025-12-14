@@ -77,8 +77,7 @@
         if (typeof AuthService === 'undefined' || typeof Router === 'undefined') {
             document.querySelector('.loading .spinner').style.display = 'none';
             document.querySelector('.loading p').textContent = 'Error: 404.';
-        } else {
-            Router.init();
+            console.error('Services not loaded, try refreshing the page.');
         }
     </script>
 </body>
