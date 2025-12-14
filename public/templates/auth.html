@@ -579,7 +579,8 @@
                 if (!data.user) throw new Error('Invalid response from server');
                 showMessage('loginMessage', '✅ Login successful! Redirecting...', 'success');
                 setTimeout(() => {
-                    Router.redirectTo(Router.routers.dashboard);
+                    if (typeof Router !== 'undefined' && Router.routers?.dashboard) Router.redirectTo(Router.routers.dashboard);
+                    else throw new Error('Router service not loaded, try refreshing the page.');
                 }, 100);
             } catch (err) {
                 showMessage('loginMessage', `❌ ${err.message}`, 'error');
