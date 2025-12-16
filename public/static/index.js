@@ -720,7 +720,7 @@ function closeSideMenu() {
     if (menu) menu.classList.remove('show');
 }
 
-function changeScreen(screenId) {
+function changeScreen(screenId, isHidePanels = false) {
     AppState.currentScreen = screenId;
 
     document.querySelectorAll('.appScreen').forEach(screen => {
@@ -736,6 +736,17 @@ function changeScreen(screenId) {
     const screenBtn = document.querySelector(`[data-screen="${screenId}"]`);
     if (screenBtn) {
         screenBtn.classList.add('active');
+    }
+
+    const topPanel = document.getElementById('droptopMenu');
+    const downPanel = document.getElementById('dropdownMenu');
+
+    if (isHidePanels) {
+        if (topPanel) topPanel.style.display = 'none';
+        if (downPanel) downPanel.style.display = 'none';
+    } else {
+        if (topPanel) topPanel.style.display = '';
+        if (downPanel) downPanel.style.display = '';
     }
 
     const screens = {
@@ -936,14 +947,14 @@ function renderLeaderboard(list, container) {
         xp: Number(u.xp) || 0,
     }));
 
-    normalized.forEach((it, idx) => {
-        it.rank = idx + 1;
-        it.badge = computeBadge(it.rank);
-    });
-
     normalized.sort((a, b) => {
         if (b.level !== a.level) return b.level - a.level;
         return b.xp - a.xp;
+    });
+
+    normalized.forEach((it, idx) => {
+        it.rank = idx + 1;
+        it.badge = computeBadge(it.rank);
     });
 
     container.innerHTML = normalized.map((user, idx) => buildLeaderboardRow(user, idx)).join('');
@@ -1523,7 +1534,7 @@ async function showCodeDetail(code) {
 
 function openCodeEditor(codeToEdit = null) {
     AppState.currentEditingCode = codeToEdit;
-    changeScreen('codeEditor');
+    changeScreen('codeEditor', true);
 
     document.getElementById('editorTitle').value = (codeToEdit && codeToEdit.title) ? codeToEdit.title : '';
     document.getElementById('editorLanguage').value = (codeToEdit && codeToEdit.language) ? codeToEdit.language : 'SelectLanguage';
@@ -1606,7 +1617,7 @@ async function createCodeOnServer(title, language, description, code, publishBtn
         if (publishBtn) {
             publishBtn.disabled = false;
             publishBtn.style.opacity = '1';
-            publishBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Publish Code';
+            publishBtn.innerHTML = '<i class="fas fa-cloud-arrow-up"></i> Publish Code';
         }
     }
 }

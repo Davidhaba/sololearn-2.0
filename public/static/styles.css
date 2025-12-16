@@ -360,7 +360,7 @@ input[type="checkbox"]:checked::after {
     padding: 0;
 }
 
-#app>div {
+.appScreen {
     display: none;
     padding: 30px;
     overflow-y: auto;
@@ -370,25 +370,26 @@ input[type="checkbox"]:checked::after {
     scroll-behavior: smooth;
 }
 
-#app>div::-webkit-scrollbar {
+.appScreen::-webkit-scrollbar {
     width: 6px;
+    height: 6px;
 }
 
-#app>div::-webkit-scrollbar-track {
+.appScreen::-webkit-scrollbar-track {
     background: transparent;
 }
 
-#app>div::-webkit-scrollbar-thumb {
+.appScreen::-webkit-scrollbar-thumb {
     background: rgba(99, 102, 241, 0.3);
     border-radius: 10px;
     transition: background 0.3s;
 }
 
-#app>div::-webkit-scrollbar-thumb:hover {
+.appScreen::-webkit-scrollbar-thumb:hover {
     background: rgba(99, 102, 241, 0.5);
 }
 
-#app>div.active {
+.appScreen.active {
     display: flex;
     flex-direction: column;
 }
@@ -759,9 +760,7 @@ input[type="checkbox"]:checked::after {
 }
 
 #codeEditor {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
+    gap: 16px;
 }
 
 #codeEditor input,
@@ -1068,7 +1067,7 @@ input[type="checkbox"]:checked::after {
         font-size: 32px;
     }
 
-    #app>div {
+    .appScreen {
         padding: 20px;
     }
 
@@ -1095,12 +1094,17 @@ input[type="checkbox"]:checked::after {
 }
 
 @keyframes shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
+    0% {
+        background-position: -200% 0;
+    }
+
+    100% {
+        background-position: 200% 0;
+    }
 }
 
 .skeleton {
-    background: linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.1) 75%);
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.1) 25%, rgba(255, 255, 255, 0.05) 50%, rgba(255, 255, 255, 0.1) 75%);
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
 }
