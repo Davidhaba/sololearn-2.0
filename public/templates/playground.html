@@ -748,19 +748,21 @@
                             'Authorization': `Bearer ${AuthService.getToken() || null}`
                         }
                     });
+                    const data = await response.json();
                     if (response.ok) {
-                        const codeData = await response.json();
-                        if (codeData.files && Array.isArray(codeData.files)) {
+                        if (data.files && Array.isArray(data.files)) {
                             files = [];
-                            codeData.files.forEach(file => {
+                            data.files.forEach(file => {
                                 files.push({ name: file.name, content: file.content || '' });
                             });
                         }
-                        document.getElementById('codeTitle').textContent = codeData.title;
-                        language = codeData.language || '';
+                        document.getElementById('codeTitle').textContent = data.title;
+                        language = data.language || '';
+                    } else {
+                        throw new Error(data.error || 'Unknown error');
                     }
-                } catch (error) {
-                    console.error('Failed to load code:', error);
+                } catch (e) {
+                    console.error('Failed to load code:', e);
                 }
             }
 
