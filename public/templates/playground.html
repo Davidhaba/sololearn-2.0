@@ -750,12 +750,10 @@
                 if (response.ok) {
                     const codeData = await response.json();
                     if (codeData.files && Array.isArray(codeData.files)) {
+                        files = [];
                         codeData.files.forEach(file => {
-                            if (editors[file.name]) {
-                                editors[file.name].setValue(file.content);
-                            }
+                            files.push({ name: file.name, content: file.content || '' });
                         });
-                        files = codeData.files;
                     }
                     document.getElementById('codeTitle').textContent = codeData.title;
                     language = codeData.language || '';
