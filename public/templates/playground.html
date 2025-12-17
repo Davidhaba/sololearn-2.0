@@ -419,7 +419,7 @@
             }
         }
 
-        function createTabsAndEditors() {
+        async function createTabsAndEditors() {
             const editorTabs = document.querySelector('.editor-tabs');
             const editorsPanel = document.querySelector('.editors-panel');
 
@@ -506,7 +506,7 @@
             files = getFilesForLanguage('web');
         } else if (!isNaN(lastPart)) {
             codeId = lastPart;
-            loadCode(codeId);
+            await loadCode(codeId);
         } else {
             language = lastPart.toLowerCase();
             files = getFilesForLanguage(language);
