@@ -419,7 +419,7 @@
             }
         }
 
-        async function createTabsAndEditors() {
+        function createTabsAndEditors() {
             const editorTabs = document.querySelector('.editor-tabs');
             const editorsPanel = document.querySelector('.editors-panel');
 
@@ -497,160 +497,161 @@
             editorsPanel.appendChild(consoleContainer);
         }
 
-        const path = window.location.pathname;
-        const parts = path.split('/');
-        const lastPart = parts[parts.length - 1];
+        (async () => {
+            const path = window.location.pathname;
+            const parts = path.split('/');
+            const lastPart = parts[parts.length - 1];
 
-        if (lastPart === 'playground' || lastPart === '') {
-            language = 'web';
-            files = getFilesForLanguage('web');
-        } else if (!isNaN(lastPart)) {
-            codeId = lastPart;
-            await loadCode(codeId);
-        } else {
-            language = lastPart.toLowerCase();
-            files = getFilesForLanguage(language);
-        }
-
-        if (!codeId) {
-            const pretty = language ? getPrettyLanguageName(language) : 'Project';
-            document.getElementById('codeTitle').textContent = 'New ' + pretty + ' Project';
-        }
-        createTabsAndEditors();
-
-        require.config({ paths: { vs: "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs" } });
-        require(["vs/editor/editor.main"], function () {
-            files.forEach(file => {
-                const containerId = file.name.replace(/\./g, '') + 'Container';
-                const lang = getLanguageFromName(file.name);
-                editors[file.name] = monaco.editor.create(document.getElementById(containerId), {
-                    value: file.content,
-                    language: lang,
-                    theme: "vs-dark",
-                    fontSize: 14,
-                    minimap: { enabled: false },
-                    scrollBeyondLastLine: false,
-                    automaticLayout: true
-                });
-            });
-        });
-
-        document.querySelectorAll('.editor-tab').forEach(tab => {
-            tab.addEventListener('click', function () {
-                document.querySelectorAll('.editor-tab').forEach(t => t.classList.remove('active'));
-                document.querySelectorAll('.editor-container').forEach(e => e.classList.remove('active'));
-                this.classList.add('active');
-                document.getElementById(this.dataset.tab).classList.add('active');
-                if (this.dataset.tab === 'previewContainer') updatePreview();
-                else if (this.dataset.tab !== 'consoleContainer') updatePreview(false);
-            });
-        });
-        let isEditName = false;
-        function saveTitle() {
-            const newTitle = document.getElementById('titleInput')?.value?.trim() || 'Untitled';
-            document.getElementById('codeTitle').textContent = newTitle;
-            document.getElementById('editName').innerHTML = '<i class="fas fa-pen"></i>';
-        };
-
-        document.getElementById('editName').addEventListener('click', function () {
-            if (!isEditName) {
-                isEditName = true;
-                const h2 = document.getElementById('codeTitle');
-                const currentTitle = h2.textContent;
-                h2.innerHTML = `<input id="titleInput" value="${currentTitle}" style="font-size: 24px; font-weight: 600; background: transparent; border: none; color: white; outline: none; width: 200px;">`;
-                document.getElementById('editName').innerHTML = '<i class="fas fa-check"></i>';
-                const input = document.getElementById('titleInput');
-                input.focus();
-                input.select();
-                input.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter') {
-                        saveTitle();
-                    } else if (e.key === 'Escape') {
-                        h2.textContent = currentTitle;
-                        document.getElementById('editName').innerHTML = '<i class="fas fa-pen"></i>';
-                    }
-                });
+            if (lastPart === 'playground' || lastPart === '') {
+                language = 'web';
+                files = getFilesForLanguage('web');
+            } else if (!isNaN(lastPart)) {
+                codeId = lastPart;
+                await loadCode(codeId);
             } else {
-                isEditName = false;
-                saveTitle();
+                language = lastPart.toLowerCase();
+                files = getFilesForLanguage(language);
             }
-        });
 
-        document.getElementById('saveBtn').addEventListener('click', async () => {
-            const isAuth = AuthService.isAuthenticated() || false;
-            if (!isAuth) {
-                alert('Please log in to save code.');
-                return;
+            if (!codeId) {
+                const pretty = language ? getPrettyLanguageName(language) : 'Project';
+                document.getElementById('codeTitle').textContent = 'New ' + pretty + ' Project';
             }
-            const title = document.getElementById('codeTitle').textContent || 'Untitled';
-            const filesToSave = files.map(file => ({ name: file.name, content: (editors[file.name] && typeof editors[file.name].getValue === 'function') ? editors[file.name].getValue() : (file.content || '') }));
-            const body = { title, language, description: '', files: filesToSave };
-            try {
-                let response;
-                const headers = {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${AuthService.getToken() || null}`
-                };
-                if (codeId) {
-                    response = await fetch(`/api/codes/${codeId}`, {
-                        method: 'PUT',
-                        headers,
-                        body: JSON.stringify(body)
+            createTabsAndEditors();
+
+            require.config({ paths: { vs: "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs" } });
+            require(["vs/editor/editor.main"], function () {
+                files.forEach(file => {
+                    const containerId = file.name.replace(/\./g, '') + 'Container';
+                    const lang = getLanguageFromName(file.name);
+                    editors[file.name] = monaco.editor.create(document.getElementById(containerId), {
+                        value: file.content,
+                        language: lang,
+                        theme: "vs-dark",
+                        fontSize: 14,
+                        minimap: { enabled: false },
+                        scrollBeyondLastLine: false,
+                        automaticLayout: true
+                    });
+                });
+            });
+
+            document.querySelectorAll('.editor-tab').forEach(tab => {
+                tab.addEventListener('click', function () {
+                    document.querySelectorAll('.editor-tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.editor-container').forEach(e => e.classList.remove('active'));
+                    this.classList.add('active');
+                    document.getElementById(this.dataset.tab).classList.add('active');
+                    if (this.dataset.tab === 'previewContainer') updatePreview();
+                    else if (this.dataset.tab !== 'consoleContainer') updatePreview(false);
+                });
+            });
+            let isEditName = false;
+            function saveTitle() {
+                const newTitle = document.getElementById('titleInput')?.value?.trim() || 'Untitled';
+                document.getElementById('codeTitle').textContent = newTitle;
+                document.getElementById('editName').innerHTML = '<i class="fas fa-pen"></i>';
+            };
+
+            document.getElementById('editName').addEventListener('click', function () {
+                if (!isEditName) {
+                    isEditName = true;
+                    const h2 = document.getElementById('codeTitle');
+                    const currentTitle = h2.textContent;
+                    h2.innerHTML = `<input id="titleInput" value="${currentTitle}" style="font-size: 24px; font-weight: 600; background: transparent; border: none; color: white; outline: none; width: 200px;">`;
+                    document.getElementById('editName').innerHTML = '<i class="fas fa-check"></i>';
+                    const input = document.getElementById('titleInput');
+                    input.focus();
+                    input.select();
+                    input.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') {
+                            saveTitle();
+                        } else if (e.key === 'Escape') {
+                            h2.textContent = currentTitle;
+                            document.getElementById('editName').innerHTML = '<i class="fas fa-pen"></i>';
+                        }
                     });
                 } else {
-                    response = await fetch('/api/codes', {
-                        method: 'POST',
-                        headers,
-                        body: JSON.stringify(body)
-                    });
+                    isEditName = false;
+                    saveTitle();
                 }
-                if (response.ok) {
-                    const data = await response.json();
-                    alert('Code saved successfully!');
-                    if (!codeId) {
-                        codeId = data.id;
-                        history.pushState(null, '', `/playground/${codeId}`);
-                        document.getElementById('codeTitle').textContent = data.title;
+            });
+
+            document.getElementById('saveBtn').addEventListener('click', async () => {
+                const isAuth = AuthService.isAuthenticated() || false;
+                if (!isAuth) {
+                    alert('Please log in to save code.');
+                    return;
+                }
+                const title = document.getElementById('codeTitle').textContent || 'Untitled';
+                const filesToSave = files.map(file => ({ name: file.name, content: (editors[file.name] && typeof editors[file.name].getValue === 'function') ? editors[file.name].getValue() : (file.content || '') }));
+                const body = { title, language, description: '', files: filesToSave };
+                try {
+                    let response;
+                    const headers = {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${AuthService.getToken() || null}`
+                    };
+                    if (codeId) {
+                        response = await fetch(`/api/codes/${codeId}`, {
+                            method: 'PUT',
+                            headers,
+                            body: JSON.stringify(body)
+                        });
+                    } else {
+                        response = await fetch('/api/codes', {
+                            method: 'POST',
+                            headers,
+                            body: JSON.stringify(body)
+                        });
                     }
-                } else {
-                    const error = await response.json();
-                    alert('Save failed: ' + (error.error || 'Unknown error'));
+                    if (response.ok) {
+                        const data = await response.json();
+                        alert('Code saved successfully!');
+                        if (!codeId) {
+                            codeId = data.id;
+                            history.pushState(null, '', `/playground/${codeId}`);
+                            document.getElementById('codeTitle').textContent = data.title;
+                        }
+                    } else {
+                        const error = await response.json();
+                        alert('Save failed: ' + (error.error || 'Unknown error'));
+                    }
+                } catch (error) {
+                    console.error('Save error:', error);
+                    alert('Save error: ' + error.message);
                 }
-            } catch (error) {
-                console.error('Save error:', error);
-                alert('Save error: ' + error.message);
-            }
-        });
+            });
 
-        document.getElementById('runBtn').addEventListener('click', () => {
-            const btn = document.querySelector('[data-tab="previewContainer"]');
-            if (btn) btn.click();
-            else updatePreview();
-        });
+            document.getElementById('runBtn').addEventListener('click', () => {
+                const btn = document.querySelector('[data-tab="previewContainer"]');
+                if (btn) btn.click();
+                else updatePreview();
+            });
 
-        function updatePreview(showPreview = true) {
-            let fullHtml;
-            if (showPreview && language === 'web') {
-                const html = editors['index.html'].getValue();
-                const css = editors['style.css'].getValue();
-                const js = editors['script.js'].getValue();
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                let head = doc.head;
-                if (!head) {
-                    head = doc.createElement('head');
-                    doc.documentElement.insertBefore(head, doc.documentElement.firstChild);
-                }
-                const style = doc.createElement('style');
-                style.textContent = css;
-                head.insertBefore(style, head.firstChild);
-                let body = doc.body;
-                if (!body) {
-                    body = doc.createElement('body');
-                    doc.documentElement.appendChild(body);
-                }
-                const script = doc.createElement('script');
-                script.textContent = `
+            function updatePreview(showPreview = true) {
+                let fullHtml;
+                if (showPreview && language === 'web') {
+                    const html = editors['index.html'].getValue();
+                    const css = editors['style.css'].getValue();
+                    const js = editors['script.js'].getValue();
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    let head = doc.head;
+                    if (!head) {
+                        head = doc.createElement('head');
+                        doc.documentElement.insertBefore(head, doc.documentElement.firstChild);
+                    }
+                    const style = doc.createElement('style');
+                    style.textContent = css;
+                    head.insertBefore(style, head.firstChild);
+                    let body = doc.body;
+                    if (!body) {
+                        body = doc.createElement('body');
+                        doc.documentElement.appendChild(body);
+                    }
+                    const script = doc.createElement('script');
+                    script.textContent = `
 // script injected from playground to capture console output
 (function() {
     console.log = function(...args) {
@@ -673,170 +674,171 @@
 // end of injected script
 
 ` + js;
-                body.insertBefore(script, body.firstChild);
-                fullHtml = doc.documentElement.outerHTML;
-            } else {
-                fullHtml = '';
-            }
-            const consoleDiv = document.getElementById('console');
-            if (consoleDiv) consoleDiv.innerHTML = '';
-            const preview = document.getElementById('preview');
-            if (preview) preview.srcdoc = fullHtml;
-        }
-
-        function formatConsoleMessage(args = null) {
-            if (!args || args.length === 0) return '';
-            let format = args[0];
-            if (typeof format !== 'string') return args.map(arg => String(arg)).join(' ');
-            let result = '';
-            let argIndex = 1;
-            let i = 0;
-            while (i < format.length) {
-                if (format[i] === '%' && i + 1 < format.length) {
-                    if (format[i + 1] === 'c') {
-                        let style = '';
-                        if (argIndex < args.length) {
-                            style = String(args[argIndex]);
-                            argIndex++;
-                        }
-                        i += 2;
-                        let start = i;
-                        while (i < format.length && format[i] !== '%') {
-                            i++;
-                        }
-                        let text = format.substring(start, i);
-                        if (style) {
-                            result += `<span style="${style.replace(/"/g, '&quot;')}">${text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>`;
-                        } else {
-                            result += text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                        }
-                        continue;
-                    } else if (format[i + 1] === '%') {
-                        result += '%';
-                        i += 2;
-                        continue;
-                    }
-                }
-                result += format[i].replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                i++;
-            }
-            while (argIndex < args.length) {
-                result += ' ' + String(args[argIndex]).replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                argIndex++;
-            }
-            return result;
-        }
-
-        window.addEventListener('message', function (e) {
-            const consoleDiv = document.getElementById('console');
-            if (!consoleDiv || !e.data) return;
-            const message = document.createElement('div');
-            message.className = 'console-' + e.data.type;
-            const formatted = formatConsoleMessage(e.data.args);
-            message.innerHTML = formatted;
-            consoleDiv.appendChild(message);
-            consoleDiv.scrollTop = consoleDiv.scrollHeight;
-        });
-
-        async function loadCode(codeId) {
-            try {
-                const response = await fetch(`/api/codes/${codeId}`, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${AuthService.getToken() || null}`
-                    }
-                });
-                if (response.ok) {
-                    const codeData = await response.json();
-                    if (codeData.files && Array.isArray(codeData.files)) {
-                        files = [];
-                        codeData.files.forEach(file => {
-                            files.push({ name: file.name, content: file.content || '' });
-                        });
-                    }
-                    document.getElementById('codeTitle').textContent = codeData.title;
-                    language = codeData.language || '';
-                }
-            } catch (error) {
-                console.error('Failed to load code:', error);
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const c = document.querySelector('.editors-panel'), e = document.querySelectorAll('.editor-container'), r = document.querySelectorAll('.resizer.horizontal');
-            let w = [], l = [], s = [], a = null, x = null;
-            const ul = () => {
-                isMobile = window.innerWidth <= 768;
-                if (isMobile) {
-                    resetResizer();
-                    const cp = document.querySelector('#previewContainer .console-panel #console');
-                    if (cp) document.getElementById('consoleContainer').appendChild(cp);
-                    return;
-                }
-                const cp = document.querySelector('#consoleContainer #console');
-                if (cp) document.querySelector('#previewContainer .console-panel').appendChild(cp);
-                setResizer('50');
-                const cw = c.offsetWidth;
-                if (!w.length) {
-                    const n = e.length, ww = cw / n;
-                    s = [0];
-                    for (let i = 0; i < n; i++) w[i] = ww, l[i] = s[i], s.push(s[i] + ww);
-                    s[n] = cw;
+                    body.insertBefore(script, body.firstChild);
+                    fullHtml = doc.documentElement.outerHTML;
                 } else {
-                    const ct = s[s.length - 1], sc = cw / ct;
-                    s = s.map(v => v * sc);
-                    for (let i = 0; i < e.length; i++) w[i] = s[i + 1] - s[i], l[i] = s[i];
+                    fullHtml = '';
                 }
-                e.forEach((ed, i) => (ed.style.left = l[i] + 'px', ed.style.width = w[i] + 'px'));
-                r.forEach((rs, i) => rs.style.left = (s[i + 1] - 2.5) + 'px');
-            };
-            const prev = document.getElementById('preview');
-            r.forEach((rs, i) => rs.addEventListener('mousedown', ev => (ev.preventDefault(), a = i, x = ev.clientX, prev ? prev.style.pointerEvents = 'none' : null)));
-            document.addEventListener('mousemove', ev => {
-                if (x === null) return;
-                const cx = Math.max(0, Math.min(ev.clientX - c.getBoundingClientRect().left, c.offsetWidth)), si = a + 1;
-                const ss = (i, v) => {
-                    const ml = i > 0 ? s[i - 1] + 50 : 0, mr = i < s.length - 1 ? s[i + 1] - 50 : c.offsetWidth;
-                    if (v < ml) { if (i > 0) ss(i - 1, v - 50); s[i] = ml; }
-                    else if (v > mr) { if (i < s.length - 1) ss(i + 1, v + 50); s[i] = mr; }
-                    else s[i] = v;
-                };
-                ss(si, cx);
-                for (let i = 0; i < e.length; i++) w[i] = s[i + 1] - s[i], l[i] = s[i], e[i].style.left = l[i] + 'px', e[i].style.width = w[i] + 'px';
-                r.forEach((rs, i) => rs.style.left = (s[i + 1] - 2.5) + 'px');
-            });
-            document.addEventListener('mouseup', () => (x = null, a = null, prev ? prev.style.pointerEvents = 'auto' : null));
-            const vr = document.querySelector('.resizer.vertical');
-            if (vr) vr.addEventListener('mousedown', ev => {
-                ev.preventDefault();
-                const p = vr.previousElementSibling, n = vr.nextElementSibling, sy = ev.clientY, ph = p?.offsetHeight, nh = n.offsetHeight;
-                if (prev) prev.style.pointerEvents = 'none';
-                const mm = ev => {
-                    const dy = ev.clientY - sy;
-                    const newConsole = Math.max(40, nh - dy);
-                    setResizer(newConsole);
-                };
-                const mu = () => (document.removeEventListener('mousemove', mm), document.removeEventListener('mouseup', mu), prev ? prev.style.pointerEvents = 'auto' : null);
-                document.addEventListener('mousemove', mm), document.addEventListener('mouseup', mu);
-            });
-            function resetResizer() {
-                if (typeof vr === 'undefined' || !vr) return;
-                const p = vr.previousElementSibling, n = vr.nextElementSibling;
-                if (p) p.style.height = '100%';
-                if (n) n.style.height = '100%';
+                const consoleDiv = document.getElementById('console');
+                if (consoleDiv) consoleDiv.innerHTML = '';
+                const preview = document.getElementById('preview');
+                if (preview) preview.srcdoc = fullHtml;
             }
-            function setResizer(nc) {
-                const p = vr?.previousElementSibling, n = vr?.nextElementSibling;
-                const totalHeight = document.getElementById('previewContainer')?.offsetHeight;
-                const newConsolePercent = Math.min(70, (nc / totalHeight) * 100);
-                if (p) p.style.height = `calc(100% - ${newConsolePercent}% - 35px)`;
-                if (n) n.style.height = newConsolePercent + '%';
-                if (vr) vr.style.bottom = `calc(${newConsolePercent}% - 5px)`;
+
+            function formatConsoleMessage(args = null) {
+                if (!args || args.length === 0) return '';
+                let format = args[0];
+                if (typeof format !== 'string') return args.map(arg => String(arg)).join(' ');
+                let result = '';
+                let argIndex = 1;
+                let i = 0;
+                while (i < format.length) {
+                    if (format[i] === '%' && i + 1 < format.length) {
+                        if (format[i + 1] === 'c') {
+                            let style = '';
+                            if (argIndex < args.length) {
+                                style = String(args[argIndex]);
+                                argIndex++;
+                            }
+                            i += 2;
+                            let start = i;
+                            while (i < format.length && format[i] !== '%') {
+                                i++;
+                            }
+                            let text = format.substring(start, i);
+                            if (style) {
+                                result += `<span style="${style.replace(/"/g, '&quot;')}">${text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>`;
+                            } else {
+                                result += text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                            }
+                            continue;
+                        } else if (format[i + 1] === '%') {
+                            result += '%';
+                            i += 2;
+                            continue;
+                        }
+                    }
+                    result += format[i].replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    i++;
+                }
+                while (argIndex < args.length) {
+                    result += ' ' + String(args[argIndex]).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    argIndex++;
+                }
+                return result;
             }
-            ul();
-            window.addEventListener('resize', ul);
-        });
+
+            window.addEventListener('message', function (e) {
+                const consoleDiv = document.getElementById('console');
+                if (!consoleDiv || !e.data) return;
+                const message = document.createElement('div');
+                message.className = 'console-' + e.data.type;
+                const formatted = formatConsoleMessage(e.data.args);
+                message.innerHTML = formatted;
+                consoleDiv.appendChild(message);
+                consoleDiv.scrollTop = consoleDiv.scrollHeight;
+            });
+
+            async function loadCode(codeId) {
+                try {
+                    const response = await fetch(`/api/codes/${codeId}`, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${AuthService.getToken() || null}`
+                        }
+                    });
+                    if (response.ok) {
+                        const codeData = await response.json();
+                        if (codeData.files && Array.isArray(codeData.files)) {
+                            files = [];
+                            codeData.files.forEach(file => {
+                                files.push({ name: file.name, content: file.content || '' });
+                            });
+                        }
+                        document.getElementById('codeTitle').textContent = codeData.title;
+                        language = codeData.language || '';
+                    }
+                } catch (error) {
+                    console.error('Failed to load code:', error);
+                }
+            }
+
+            document.addEventListener('DOMContentLoaded', () => {
+                const c = document.querySelector('.editors-panel'), e = document.querySelectorAll('.editor-container'), r = document.querySelectorAll('.resizer.horizontal');
+                let w = [], l = [], s = [], a = null, x = null;
+                const ul = () => {
+                    isMobile = window.innerWidth <= 768;
+                    if (isMobile) {
+                        resetResizer();
+                        const cp = document.querySelector('#previewContainer .console-panel #console');
+                        if (cp) document.getElementById('consoleContainer').appendChild(cp);
+                        return;
+                    }
+                    const cp = document.querySelector('#consoleContainer #console');
+                    if (cp) document.querySelector('#previewContainer .console-panel').appendChild(cp);
+                    setResizer('50');
+                    const cw = c.offsetWidth;
+                    if (!w.length) {
+                        const n = e.length, ww = cw / n;
+                        s = [0];
+                        for (let i = 0; i < n; i++) w[i] = ww, l[i] = s[i], s.push(s[i] + ww);
+                        s[n] = cw;
+                    } else {
+                        const ct = s[s.length - 1], sc = cw / ct;
+                        s = s.map(v => v * sc);
+                        for (let i = 0; i < e.length; i++) w[i] = s[i + 1] - s[i], l[i] = s[i];
+                    }
+                    e.forEach((ed, i) => (ed.style.left = l[i] + 'px', ed.style.width = w[i] + 'px'));
+                    r.forEach((rs, i) => rs.style.left = (s[i + 1] - 2.5) + 'px');
+                };
+                const prev = document.getElementById('preview');
+                r.forEach((rs, i) => rs.addEventListener('mousedown', ev => (ev.preventDefault(), a = i, x = ev.clientX, prev ? prev.style.pointerEvents = 'none' : null)));
+                document.addEventListener('mousemove', ev => {
+                    if (x === null) return;
+                    const cx = Math.max(0, Math.min(ev.clientX - c.getBoundingClientRect().left, c.offsetWidth)), si = a + 1;
+                    const ss = (i, v) => {
+                        const ml = i > 0 ? s[i - 1] + 50 : 0, mr = i < s.length - 1 ? s[i + 1] - 50 : c.offsetWidth;
+                        if (v < ml) { if (i > 0) ss(i - 1, v - 50); s[i] = ml; }
+                        else if (v > mr) { if (i < s.length - 1) ss(i + 1, v + 50); s[i] = mr; }
+                        else s[i] = v;
+                    };
+                    ss(si, cx);
+                    for (let i = 0; i < e.length; i++) w[i] = s[i + 1] - s[i], l[i] = s[i], e[i].style.left = l[i] + 'px', e[i].style.width = w[i] + 'px';
+                    r.forEach((rs, i) => rs.style.left = (s[i + 1] - 2.5) + 'px');
+                });
+                document.addEventListener('mouseup', () => (x = null, a = null, prev ? prev.style.pointerEvents = 'auto' : null));
+                const vr = document.querySelector('.resizer.vertical');
+                if (vr) vr.addEventListener('mousedown', ev => {
+                    ev.preventDefault();
+                    const p = vr.previousElementSibling, n = vr.nextElementSibling, sy = ev.clientY, ph = p?.offsetHeight, nh = n.offsetHeight;
+                    if (prev) prev.style.pointerEvents = 'none';
+                    const mm = ev => {
+                        const dy = ev.clientY - sy;
+                        const newConsole = Math.max(40, nh - dy);
+                        setResizer(newConsole);
+                    };
+                    const mu = () => (document.removeEventListener('mousemove', mm), document.removeEventListener('mouseup', mu), prev ? prev.style.pointerEvents = 'auto' : null);
+                    document.addEventListener('mousemove', mm), document.addEventListener('mouseup', mu);
+                });
+                function resetResizer() {
+                    if (typeof vr === 'undefined' || !vr) return;
+                    const p = vr.previousElementSibling, n = vr.nextElementSibling;
+                    if (p) p.style.height = '100%';
+                    if (n) n.style.height = '100%';
+                }
+                function setResizer(nc) {
+                    const p = vr?.previousElementSibling, n = vr?.nextElementSibling;
+                    const totalHeight = document.getElementById('previewContainer')?.offsetHeight;
+                    const newConsolePercent = Math.min(70, (nc / totalHeight) * 100);
+                    if (p) p.style.height = `calc(100% - ${newConsolePercent}% - 35px)`;
+                    if (n) n.style.height = newConsolePercent + '%';
+                    if (vr) vr.style.bottom = `calc(${newConsolePercent}% - 5px)`;
+                }
+                ul();
+                window.addEventListener('resize', ul);
+            });
+        })();
     </script>
 </body>
 
