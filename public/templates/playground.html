@@ -579,8 +579,8 @@
         });
 
         document.getElementById('saveBtn').addEventListener('click', async () => {
-            const token = localStorage.getItem('token');
-            if (!token) {
+            const isAuth = AuthService.isAuthenticated();
+            if (!isAuth) {
                 alert('Please log in to save code.');
                 return;
             }
