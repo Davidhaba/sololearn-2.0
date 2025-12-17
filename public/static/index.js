@@ -1413,8 +1413,8 @@ function displayCodes(filterType) {
     container.querySelectorAll('.deleteCodeBtn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (confirm('Are you sure you want to delete this code?')) {
-                const codeId = btn.getAttribute('data-code-id');
+            const codeId = btn.getAttribute('data-code-id');
+            if (codeId && confirm('Are you sure you want to delete this code?')) {
                 deleteCodeOnServer(codeId);
             }
         });
@@ -1533,6 +1533,14 @@ async function showCodeDetail(code) {
 }
 
 function openCodeEditor(codeToEdit = null) {
+    if (typeof AuthService === 'undefined' || !AuthService.isAuthenticated()) {
+        if (codeToEdit) showNotification('Please log in to edit code.');
+        else showNotification('Please sign in to create code.');
+        return;
+    }
+    Router.redirectTo(Router.routers?.playground + (codeToEdit ? codeToEdit.id : null));
+    return;
+    /*
     AppState.currentEditingCode = codeToEdit;
     changeScreen('codeEditor', true);
 
@@ -1547,19 +1555,24 @@ function openCodeEditor(codeToEdit = null) {
             ? '<i class="fas fa-save"></i> Save Changes'
             : '<i class="fas fa-cloud-arrow-up"></i> Publish Code';
         publishBtn.disabled = false;
-        publishBtn.style.opacity = '1';
     }
     document.getElementById('editorTitle').focus();
+    */
 }
 
 async function publishCode() {
     const title = document.getElementById('editorTitle').value.trim();
-    const language = document.getElementById('editorLanguage').value;
+    const langVal = document.getElementById('editorLanguage').value;
+    const language = langVal !== 'SelectLanguage' ? langVal : '';
     const description = document.getElementById('editorDescription').value.trim();
     const code = document.getElementById('editorContent').value.trim();
 
     if (!title) {
         showNotification('❌ Title is required');
+        return;
+    }
+    if (!language) {
+        showNotification('❌ Language is required');
         return;
     }
     if (!code) {
@@ -1570,85 +1583,59 @@ async function publishCode() {
         showNotification('❌ Code must be at least 10 characters');
         return;
     }
-
+    const editing = AppState.currentEditingCode;
+    const editingId = editing && (editing.id || editing.codeId) ? (editing.id || editing.codeId) : null;
+    const codeId = Number(editingId);
+    const isEditing = codeId && isFinite(codeId);
     const publishBtn = document.getElementById('editorPublishBtn');
     if (publishBtn) {
         publishBtn.disabled = true;
-        publishBtn.style.opacity = '0.7';
-        publishBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Publishing...';
+        publishBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${isEditing ? 'Updating' : 'Publishing'}...`;
     }
-
-    const editing = AppState.currentEditingCode;
-    const editingId = editing && (editing.id || editing.ID || editing.codeId) ? (editing.id || editing.ID || editing.codeId) : null;
-    if (editing && editingId) {
-        const codeId = Number(editingId);
-        if (!isFinite(codeId)) {
-            console.warn('Invalid codeId detected, falling back to create');
-            await createCodeOnServer(title, language, description, code, publishBtn);
-            return;
-        }
-        await updateCodeOnServer(codeId, title, language, description, code, publishBtn);
-    } else {
-        await createCodeOnServer(title, language, description, code, publishBtn);
-    }
-}
-
-async function createCodeOnServer(title, language, description, code, publishBtn) {
     try {
-        const response = await fetch('/api/codes', {
-            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
-            body: JSON.stringify({ title, language, description, code })
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Failed to publish code');
+        if (isEditing) {
+            await updateCodeOnServer(codeId, title, language, description, code);
+        } else {
+            await createCodeOnServer(title, language, description, code);
         }
-
-        const newCode = await response.json();
-        showNotification('✅ Code published successfully!');
+        showNotification(`✅ Code ${isEditing ? 'updated' : 'published'} successfully!`);
         AppState.currentEditingCode = null;
-        await updateUsers();
-        displayCodes('myCode');
+        try { await updateUsers(); } catch { }
         changeScreen('code');
-    } catch (err) {
-        console.error('createCodeOnServer error:', err.message);
-        showNotification(`❌ Error: ${err.message}`);
+        displayCodes('myCode');
+    } catch (e) {
+        console.error('publishCode error:', e.message);
+        showNotification(`❌ Failed to ${isEditing ? 'update' : 'publish'}. ${e.message}`);
+    } finally {
         if (publishBtn) {
             publishBtn.disabled = false;
-            publishBtn.style.opacity = '1';
-            publishBtn.innerHTML = '<i class="fas fa-cloud-arrow-up"></i> Publish Code';
+            publishBtn.innerHTML = isEditing ? '<i class="fas fa-save"></i> Save Changes' : '<i class="fas fa-cloud-arrow-up"></i> Publish Code';
         }
     }
 }
 
-async function updateCodeOnServer(codeId, title, language, description, code, publishBtn) {
-    try {
-        const response = await fetch(`/api/codes/${codeId}`, {
-            method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
-            body: JSON.stringify({ title, language, description, code })
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Failed to update code');
-        }
-
-        const updatedCode = await response.json();
-        showNotification('✅ Code updated successfully!');
-        AppState.currentEditingCode = null;
-        await updateUsers();
-        displayCodes('myCode');
-        changeScreen('code');
-    } catch (err) {
-        console.error('updateCodeOnServer error:', err.message);
-        showNotification(`❌ Error: ${err.message}`);
-        if (publishBtn) {
-            publishBtn.disabled = false;
-            publishBtn.style.opacity = '1';
-            publishBtn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
-        }
+async function createCodeOnServer(title, language, description, code) {
+    const response = await fetch('/api/codes', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+        body: JSON.stringify({ title, language, description, code })
+    });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data.error || 'An error occurred');
     }
+    return data;
+}
+
+async function updateCodeOnServer(codeId, title, language, description, code) {
+    const response = await fetch(`/api/codes/${codeId}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+        body: JSON.stringify({ title, language, description, code })
+    });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data.error || 'An error occurred');
+    }
+    return data;
 }
 
 async function deleteCodeOnServer(codeId) {
@@ -1661,13 +1648,13 @@ async function deleteCodeOnServer(codeId) {
             const error = await response.json();
             throw new Error(error.error || 'Failed to delete code');
         }
-        showNotification('✅ Code deleted successfully!');
         await updateUsers();
+        showNotification('✅ Code deleted successfully!');
         const currentFilter = document.querySelector('#code .filterBtn.active')?.getAttribute('data-filter') || 'trending';
         displayCodes(currentFilter);
-    } catch (err) {
-        console.error('deleteCodeOnServer error:', err.message);
-        showNotification(`❌ Error: ${err.message}`);
+    } catch (e) {
+        console.error('deleteCodeOnServer error:', e.message);
+        showNotification(`❌ Error: ${e.message}`);
     }
 }
 

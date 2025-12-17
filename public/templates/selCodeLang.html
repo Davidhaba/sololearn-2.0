@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SoloLearn 2.0 - Select Language</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="../static/styles.css" />
+    <style>
+        .lang-selector-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #182353 0%, #4f2875 100%);
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+        }
+
+        .lang-selector-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .lang-selector-header h1 {
+            font-size: 48px;
+            font-weight: 700;
+            margin: 0 0 16px 0;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .lang-selector-header p {
+            font-size: 18px;
+            color: rgba(255, 255, 255, 0.8);
+            margin: 0;
+        }
+
+        .lang-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .lang-option {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: 32px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .lang-option:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+
+        .lang-option:active {
+            transform: translateY(-2px);
+        }
+
+        .lang-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            color: #4facfe;
+        }
+
+        .lang-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0 0 8px 0;
+        }
+
+        .lang-description {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 768px) {
+            .lang-selector-header h1 {
+                font-size: 36px;
+            }
+
+            .lang-selector-header p {
+                font-size: 16px;
+            }
+
+            .lang-options {
+                grid-template-columns: 1fr;
+            }
+
+            .lang-option {
+                padding: 24px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="lang-selector-container">
+        <div class="lang-selector-header">
+            <h1>Select Programming Language</h1>
+            <p>Choose your preferred language to start coding</p>
+        </div>
+        <div class="lang-options">
+            <div class="lang-option" onclick="selectLanguage('web')">
+                <div class="lang-icon">
+                    <i class="fas fa-code"></i>
+                </div>
+                <h3 class="lang-title">Web Development</h3>
+                <p class="lang-description">
+                    Create interactive websites with HTML, CSS, and JavaScript. Perfect for front-end development and web applications.
+                </p>
+            </div>
+            <div class="lang-option" onclick="selectLanguage('python')">
+                <div class="lang-icon">
+                    <i class="fab fa-python"></i>
+                </div>
+                <h3 class="lang-title">Python</h3>
+                <p class="lang-description">
+                    Powerful and versatile language for data science, machine learning, automation, and general-purpose programming.
+                </p>
+            </div>
+            <div class="lang-option" onclick="selectLanguage('php')">
+                <div class="lang-icon">
+                    <i class="fab fa-php"></i>
+                </div>
+                <h3 class="lang-title">PHP</h3>
+                <p class="lang-description">
+                    Popular server-side scripting language for web development and dynamic content creation.
+                </p>
+            </div>
+            <div class="lang-option" onclick="selectLanguage('rust')">
+                <div class="lang-icon">
+                    <i class="fab fa-rust"></i>
+                </div>
+                <h3 class="lang-title">Rust</h3>
+                <p class="lang-description">
+                    Systems programming language focused on safety, speed, and concurrency without garbage collection.
+                </p>
+            </div>
+            <div class="lang-option" onclick="selectLanguage('csharp')">
+                <div class="lang-icon">
+                    <i class="fab fa-microsoft"></i>
+                </div>
+                <h3 class="lang-title">C#</h3>
+                <p class="lang-description">
+                    Modern object-oriented language developed by Microsoft for .NET applications and game development.
+                </p>
+            </div>
+            <div class="lang-option" onclick="selectLanguage('java')">
+                <div class="lang-icon">
+                    <i class="fab fa-java"></i>
+                </div>
+                <h3 class="lang-title">Java</h3>
+                <p class="lang-description">
+                    Versatile, object-oriented language used for enterprise applications, Android development, and more.
+                </p>
+            </div>
+            <div class="lang-option" onclick="selectLanguage('cpp')">
+                <div class="lang-icon">
+                    <i class="fas fa-code"></i>
+                </div>
+                <h3 class="lang-title">C++</h3>
+                <p class="lang-description">
+                    High-performance language for system programming, game development, and performance-critical applications.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function selectLanguage(lang) {
+            window.location.href = `/playground/${lang}`;
+        }
+    </script>
+</body>
+
+</html>
