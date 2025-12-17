@@ -686,8 +686,8 @@
             if (preview) preview.srcdoc = fullHtml;
         }
 
-        function formatConsoleMessage(args) {
-            if (args.length === 0) return '';
+        function formatConsoleMessage(args = null) {
+            if (!args || args.length === 0) return '';
             let format = args[0];
             if (typeof format !== 'string') return args.map(arg => String(arg)).join(' ');
             let result = '';
