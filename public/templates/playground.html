@@ -506,11 +506,16 @@
             files = getFilesForLanguage('web');
         } else if (!isNaN(lastPart)) {
             codeId = lastPart;
+            loadCode(codeId);
         } else {
             language = lastPart.toLowerCase();
             files = getFilesForLanguage(language);
         }
 
+        if (!codeId) {
+            const pretty = language ? getPrettyLanguageName(language) : 'Project';
+            document.getElementById('codeTitle').textContent = 'New ' + pretty + ' Project';
+        }
         createTabsAndEditors();
 
         require.config({ paths: { vs: "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs" } });
@@ -528,13 +533,6 @@
                     automaticLayout: true
                 });
             });
-
-            if (codeId) {
-                loadCode(codeId);
-            } else {
-                const pretty = language ? getPrettyLanguageName(language) : 'Project';
-                document.getElementById('codeTitle').textContent = 'New ' + pretty + ' Project';
-            }
         });
 
         document.querySelectorAll('.editor-tab').forEach(tab => {
@@ -757,6 +755,7 @@
                                 editors[file.name].setValue(file.content);
                             }
                         });
+                        files = codeData.files;
                     }
                     document.getElementById('codeTitle').textContent = codeData.title;
                     language = codeData.language || '';
