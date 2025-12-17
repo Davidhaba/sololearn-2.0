@@ -742,7 +742,13 @@
 
         async function loadCode(codeId) {
             try {
-                const response = await fetch(`/api/codes/${codeId}`);
+                const response = await fetch(`/api/codes/${codeId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${AuthService.getToken() || null}`
+                    }
+                });
                 if (response.ok) {
                     const codeData = await response.json();
                     if (codeData.files && Array.isArray(codeData.files)) {
