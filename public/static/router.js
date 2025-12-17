@@ -28,7 +28,7 @@ const Router = (() => {
 
         if (!isAuth && currentPage !== routers.auth) {
             redirectTo(routers.auth);
-        } else if (isAuth && currentPage !== routers.dashboard) {
+        } else if (isAuth && currentPage === routers.auth) {
             console.log('✅ Already logged in, redirecting to dashboard...');
             redirectTo(routers.dashboard);
         }
