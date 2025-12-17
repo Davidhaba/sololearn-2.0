@@ -2,7 +2,8 @@ const Router = (() => {
     const routers = {
         auth: '/auth',
         authLogin: '/auth#login',
-        dashboard: '/dashboard'
+        dashboard: '/dashboard',
+        plaground: '/playground',
     };
 
     const redirectTo = (page) => {

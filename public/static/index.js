@@ -1538,7 +1538,7 @@ function openCodeEditor(codeToEdit = null) {
         else showNotification('Please sign in to create code.');
         return;
     }
-    Router.redirectTo(Router.routers?.playground + (codeToEdit ? codeToEdit.id : null));
+    Router.redirectTo(Router.routers?.playground + '/' + (codeToEdit ? codeToEdit.id : null));
     return;
     /*
     AppState.currentEditingCode = codeToEdit;
