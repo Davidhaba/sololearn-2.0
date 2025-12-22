@@ -311,27 +311,48 @@ app.post('/api/execute', authMiddleware, async (req: Request, res: Response) => 
         let output = '';
         let error = '';
 
+        // Helper function to try executing with alternative commands
+        function tryExec(commands: string[], options: any = {}): string {
+            for (const cmd of commands) {
+                try {
+                    return execSync(cmd, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024, ...options });
+                } catch (e: any) {
+                    if (e.message.includes('command not found') || e.message.includes('not recognized')) {
+                        continue; // Try next command
+                    }
+                    throw e; // Re-throw actual execution errors
+                }
+            }
+            throw new Error(`None of the commands could be executed: ${commands.join(', ')}`);
+        }
+
         try {
             switch (language.toLowerCase()) {
                 case 'python': {
                     const pythonFile = path.join(tempDir, 'script.py');
                     const content = files[0]?.content || '';
                     fs.writeFileSync(pythonFile, content);
-                    output = execSync(`python "${pythonFile}"`, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 });
+                    output = tryExec([
+                        `python3 "${pythonFile}"`,
+                        `python "${pythonFile}"`
+                    ]);
                     break;
                 }
                 case 'javascript': {
                     const jsFile = path.join(tempDir, 'script.js');
                     const content = files[0]?.content || '';
                     fs.writeFileSync(jsFile, content);
-                    output = execSync(`node "${jsFile}"`, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 });
+                    output = tryExec([`node "${jsFile}"`]);
                     break;
                 }
                 case 'php': {
                     const phpFile = path.join(tempDir, 'script.php');
                     const content = files[0]?.content || '';
                     fs.writeFileSync(phpFile, content);
-                    output = execSync(`php "${phpFile}"`, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 });
+                    output = tryExec([
+                        `php "${phpFile}"`,
+                        `php-cli "${phpFile}"`
+                    ]);
                     break;
                 }
                 case 'java': {
@@ -339,8 +360,8 @@ app.post('/api/execute', authMiddleware, async (req: Request, res: Response) => 
                     let content = files[0]?.content || '';
                     content = content.replace(/class\s+\w+/g, 'class Main');
                     fs.writeFileSync(javaFile, content);
-                    execSync(`javac "${javaFile}"`, { cwd: tempDir, maxBuffer: 10 * 1024 * 1024 });
-                    output = execSync(`java -cp "${tempDir}" Main`, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 });
+                    tryExec([`javac "${javaFile}"`], { cwd: tempDir });
+                    output = tryExec([`java -cp "${tempDir}" Main`]);
                     break;
                 }
                 case 'cpp': {
@@ -348,8 +369,11 @@ app.post('/api/execute', authMiddleware, async (req: Request, res: Response) => 
                     const exeFile = path.join(tempDir, 'program');
                     const content = files[0]?.content || '';
                     fs.writeFileSync(cppFile, content);
-                    execSync(`g++ -o "${exeFile}" "${cppFile}"`, { maxBuffer: 10 * 1024 * 1024 });
-                    output = execSync(`"${exeFile}"`, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 });
+                    tryExec([
+                        `g++ -o "${exeFile}" "${cppFile}"`,
+                        `clang++ -o "${exeFile}" "${cppFile}"`
+                    ]);
+                    output = tryExec([`"${exeFile}"`, `${exeFile}`]);
                     break;
                 }
                 case 'csharp': {
@@ -357,8 +381,11 @@ app.post('/api/execute', authMiddleware, async (req: Request, res: Response) => 
                     const exeFile = path.join(tempDir, 'Program.exe');
                     const content = files[0]?.content || '';
                     fs.writeFileSync(csFile, content);
-                    execSync(`csc -out:"${exeFile}" "${csFile}"`, { maxBuffer: 10 * 1024 * 1024 });
-                    output = execSync(`"${exeFile}"`, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 });
+                    tryExec([
+                        `csc -out:"${exeFile}" "${csFile}"`,
+                        `mcs -out:"${exeFile}" "${csFile}"`
+                    ]);
+                    output = tryExec([`"${exeFile}"`, `${exeFile}`]);
                     break;
                 }
                 case 'rust': {
@@ -366,15 +393,19 @@ app.post('/api/execute', authMiddleware, async (req: Request, res: Response) => 
                     const exeFile = path.join(tempDir, 'main');
                     const content = files[0]?.content || '';
                     fs.writeFileSync(rsFile, content);
-                    execSync(`rustc -o "${exeFile}" "${rsFile}"`, { maxBuffer: 10 * 1024 * 1024 });
-                    output = execSync(`"${exeFile}"`, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 });
+                    tryExec([`rustc -o "${exeFile}" "${rsFile}"`]);
+                    output = tryExec([`"${exeFile}"`, `${exeFile}`]);
                     break;
                 }
                 default:
                     return res.status(400).json({ error: `Language '${language}' is not supported for execution` });
             }
         } catch (execError: any) {
-            error = execError.stderr?.toString() || execError.stdout?.toString() || execError.message || 'Execution failed';
+            if (execError.message.includes('command not found') || execError.message.includes('not recognized')) {
+                error = `Required compiler/interpreter not installed for ${language}`;
+            } else {
+                error = execError.stderr?.toString() || execError.stdout?.toString() || execError.message || 'Execution failed';
+            }
         }
         fs.rmSync(tempDir, { recursive: true, force: true });
         res.json({ 
