@@ -145,6 +145,7 @@
             font-size: 14px;
             text-align: center;
         }
+
         #likesContainer:disabled,
         #likesContainer[disabled] {
             opacity: 1;
@@ -854,13 +855,23 @@
 
         async function getCodeData(codeid) {
             try {
+                const headers = {
+                    'Content-Type': 'application/json',
+                };
+                const token = AuthService.getToken() || null;
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
                 const response = await fetch(`${Router.routers.apiCodes}/${codeid}`, {
                     method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${AuthService.getToken() || null}`
-                    }
+                    headers: headers
                 });
+                try {
+                    fetch(`${Router.routers.apiCodes}/${codeid}/view`, {
+                        method: 'POST',
+                        headers: headers
+                    });
+                } catch { }
                 const data = await response.json();
                 if (!response.ok) {
                     if (data.error.trim().toLowerCase() === 'code not found') {
@@ -1201,7 +1212,7 @@
                 }
             });
 
-            document.getElementById('likesContainer').addEventListener('click', async function() {
+            document.getElementById('likesContainer').addEventListener('click', async function () {
                 if (!currentCode.codeid) return;
                 const isAuth = AuthService.isAuthenticated() || false;
                 if (!isAuth) {
