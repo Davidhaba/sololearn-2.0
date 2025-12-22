@@ -4,10 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SoloLearn 2.0: Modern Mobile Version</title>
+    <title>SoloLearn 2.0: Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
         crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <link rel="stylesheet" href="../static/styles.css" />
+    <link rel="stylesheet" href="/styles.css" />
 </head>
 
 <body>
@@ -76,57 +76,6 @@
             </div>
 
             <div id="notificationsScreen" class="appScreen"></div>
-
-            <div id="codeEditor" class="appScreen">
-                <div style="display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap;">
-                    <div style="flex: 1; min-width: 200px;">
-                        <label
-                            style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600;">
-                            Code Title</label>
-                        <input type="text" id="editorTitle" placeholder="My awesome code"
-                            style="width: 100%; padding: 12px; background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px; color: var(--text-primary); font-family: inherit; font-size: 14px;">
-                    </div>
-                    <div style="flex: 1; min-width: 150px;">
-                        <label
-                            style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600;">Language</label>
-                        <select id="editorLanguage"
-                            style="width: 100%; padding: 12px; background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px; color: var(--text-primary); font-family: inherit; font-size: 14px;">
-                            <option value="SelectLanguage" disabled selected>Select Language</option>
-                            <option value="JavaScript">JavaScript</option>
-                            <option value="Python">Python</option>
-                            <option value="Java">Java</option>
-                            <option value="C++">C++</option>
-                            <option value="C#">C#</option>
-                            <option value="PHP">PHP</option>
-                            <option value="Ruby">Ruby</option>
-                            <option value="Go">Go</option>
-                            <option value="Rust">Rust</option>
-                            <option value="TypeScript">TypeScript</option>
-                            <option value="HTML">HTML</option>
-                            <option value="CSS">CSS</option>
-                        </select>
-                    </div>
-                </div>
-                <div>
-                    <label
-                        style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600;">Description</label>
-                    <input type="text" id="editorDescription" placeholder="What does this code do?"
-                        style="width: 100%; padding: 12px; background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px; color: var(--text-primary); font-family: inherit; font-size: 14px;">
-                </div>
-                <div style="flex: 1; display: flex; flex-direction: column; min-height: 300px;">
-                    <label
-                        style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600;">Code</label>
-                    <textarea id="editorContent" placeholder="Paste or write your code here..."
-                        style="flex: 1; padding: 14px; background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px; color: var(--text-primary); font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; font-size: 13px; resize: none; line-height: 1.5;"></textarea>
-                </div>
-                <div style="position:sticky; bottom: 0; left: 0; width: 100%; backdrop-filter: blur(10px); display: flex; gap: 12px;">
-                    <button id="editorPublishBtn" class="primary-button" style="flex: 1;">
-                        <i class="fas fa-cloud-arrow-up"></i> Publish Code</button>
-                    <button id="editorDiscardBtn" class="secondary-button"
-                        style="flex: 0 1 20%; border-color: rgba(239, 68, 68, 0.3); color: var(--danger);">
-                        <i class="fas fa-times"></i> Discard</button>
-                </div>
-            </div>
 
             <div id="profileEditor" class="appScreen">
                 <div style="display:flex;flex-direction:column;height:100%;gap:16px;padding-bottom:20px;">
@@ -239,9 +188,9 @@
         </div>
     </div>
 
-    <script src="../static/authService.js"></script>
+    <script src="/authService.js"></script>
     <script src="/router.js"></script>
-    <script src="../static/index.js"></script>
+    <script src="/index.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             if (typeof AuthService === 'undefined' || typeof Router === 'undefined') {
@@ -278,7 +227,7 @@
                 <div onClick="cancelLogout()" style="cursor:pointer; font-size:14px; color: white; float: right; line-height: 1;">X</div><div style="font-size:48px; margin: 16px;">👋</div>
             </div>`;
             if (typeof AuthService !== 'undefined') AuthService.logout();
-            if (typeof Router !== 'undefined' && Router.routers?.authLogin) Router.redirectTo(Router.routers.authLogin);
+            if (typeof Router !== 'undefined' && Router.routers?.login) Router.redirectTo(Router.routers.login);
         }
 
         function cancelLogout() {

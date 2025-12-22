@@ -1,11 +1,20 @@
 const Router = (() => {
+    const apiBase = `/api`;
+    const auth = `/auth`;
     const routers = {
-        auth: '/auth',
-        authLogin: '/auth#login',
+        pageNotFound: '/pagenotfound',
+        apiBase,
+        auth,
+        login: `${auth}#login`,
         dashboard: '/dashboard',
         playground: '/playground',
+        authRegister: `${auth}/register`,
+        authLogin: `${auth}/login`,
+        authMe: `${auth}/me`,
+        apiUsers: `${apiBase}/users`,
+        authNotifications: `${auth}/notifications`,
+        apiCodes: `${apiBase}/codes`,
     };
-
     const redirectTo = (page) => {
         window.location.href = page;
     };
@@ -23,14 +32,20 @@ const Router = (() => {
     };
 
     const init = async () => {
-        const isAuth = await checkAuth();
-        const currentPage = '/' + window.location.pathname.split('/').pop() || '';
-
-        if (!isAuth && currentPage !== routers.auth) {
-            redirectTo(routers.auth);
-        } else if (isAuth && currentPage === routers.auth) {
-            console.log('✅ Already logged in, redirecting to dashboard...');
-            redirectTo(routers.dashboard);
+        try {
+            const isAuth = await checkAuth();
+            let path = window.location.pathname.trim();
+            if (path.endsWith('/')) path = path.slice(0, -1);
+            const currentPage = '/' + (path.split('/').pop() || '');
+            if (!isAuth && currentPage !== routers.auth) {
+                redirectTo(routers.auth);
+            } else if (isAuth && (currentPage === routers.auth || currentPage === '/' || currentPage === '/index')) {
+                console.log('✅ Already logged in, redirecting to dashboard...');
+                redirectTo(routers.dashboard);
+            }
+        } catch (e) {
+            if (e?.message) console.error(e.message);
+            else console.error('Redirecting error.');
         }
     };
 

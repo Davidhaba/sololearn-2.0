@@ -1,8 +1,8 @@
 const AuthService = (() => {
     let authToken, currentUser;
     return {
-        register: async function(email, password, name) {
-            const res = await fetch('/auth/register', {
+        register: async function (email, password, name) {
+            const res = await fetch(Router.routers.authRegister, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password, name })
@@ -18,8 +18,8 @@ const AuthService = (() => {
             return data;
         },
 
-        login: async function(email, password) {
-            const res = await fetch('/auth/login', {
+        login: async function (email, password) {
+            const res = await fetch(Router.routers.authLogin, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })
@@ -35,14 +35,14 @@ const AuthService = (() => {
             return data;
         },
 
-        logout: function() {
+        logout: function () {
             localStorage.removeItem('authToken');
             localStorage.removeItem('user');
             authToken = null;
             currentUser = null;
         },
 
-        getToken: function() {
+        getToken: function () {
             let token;
             try {
                 token = localStorage.getItem('authToken') || authToken;
@@ -52,12 +52,12 @@ const AuthService = (() => {
             return token || null;
         },
 
-        getCurrentUser: async function() {
+        getCurrentUser: async function () {
             const token = this.getToken();
             if (!token) return null;
 
             try {
-                const res = await fetch('/auth/me', {
+                const res = await fetch(Router.routers.authMe, {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -85,12 +85,34 @@ const AuthService = (() => {
             }
         },
 
-        isAuthenticated: function() {
+        getAllUsers: async function () {
+            const token = this.getToken();
+            if (!token) return null;
+            try {
+                const res = await fetch(Router.routers.apiUsers, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await res.json();
+                if (!res.ok || data.error) {
+                    throw new Error(data.error || res.status);
+                }
+                return data;
+            } catch (e) {
+                console.error('getAllUsers error:', e);
+                return null;
+            }
+        },
+
+        isAuthenticated: function () {
             const token = this.getToken();
             return token ? !!token : false;
         },
 
-        getStoredUser: function() {
+        getStoredUser: function () {
             let user;
             try {
                 user = JSON.parse(localStorage.getItem('user')) || currentUser;

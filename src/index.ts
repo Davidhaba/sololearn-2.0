@@ -6,6 +6,16 @@ const path = require('path');
 const fs = require('fs');
 const { hashPassword, verifyPassword, createToken, authMiddleware } = require('./auth-service');
 
+import { Request, Response, NextFunction } from 'express';
+
+declare global {
+    namespace Express {
+        interface Request {
+            user?: { userId: string; email: string };
+        }
+    }
+}
+
 interface Code {
     id: number;
     userid: string;
@@ -65,16 +75,17 @@ async function sendNotification(userId: string, notification: { title: string; t
     await db.collection('accounts').doc(userId).update({ notifications });
 }
 
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, '../public/templates/index.html')));
-app.get('/index', (req, res) => res.sendFile(path.join(__dirname, '../public/templates/index.html')));
-app.get('/auth', (req, res) => res.sendFile(path.join(__dirname, '../public/templates/auth.html')));
-app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, '../public/templates/dashboard.html')));
-app.get('/playground', (req, res) => res.sendFile(path.join(__dirname, '../public/templates/selCodeLang.html')));
-app.get('/playground/:id', (req, res) => res.sendFile(path.join(__dirname, '../public/templates/playground.html')));
+app.get('/', (req: Request, res: Response) => res.sendFile(path.join(__dirname, '../public/templates/index.html')));
+app.get('/index', (req: Request, res: Response) => res.sendFile(path.join(__dirname, '../public/templates/index.html')));
+app.get('/pagenotfound', (req: Request, res: Response) => res.sendFile(path.join(__dirname, '../public/templates/pagenotfound.html')));
+app.get('/auth', (req: Request, res: Response) => res.sendFile(path.join(__dirname, '../public/templates/auth.html')));
+app.get('/dashboard', (req: Request, res: Response) => res.sendFile(path.join(__dirname, '../public/templates/dashboard.html')));
+app.get('/playground', (req: Request, res: Response) => res.sendFile(path.join(__dirname, '../public/templates/selCodeLang.html')));
+app.get('/playground/:id', (req: Request, res: Response) => res.sendFile(path.join(__dirname, '../public/templates/playground.html')));
 
-app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toLocaleString() }));
+app.get('/health', (req: Request, res: Response) => res.json({ status: 'ok', timestamp: new Date().toLocaleString() }));
 
-app.post('/auth/register', async (req, res) => {
+app.post('/auth/register', async (req: Request, res: Response) => {
     try {
         const { email, password, name } = req.body;
         if (!email || !password || !name || password.length < 6) return res.status(400).json({ error: 'Invalid input' });
@@ -95,7 +106,7 @@ app.post('/auth/register', async (req, res) => {
     }
 });
 
-app.post('/auth/login', async (req, res) => {
+app.post('/auth/login', async (req: Request, res: Response) => {
     try {
         const { email, password } = req.body;
         if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
@@ -108,9 +119,9 @@ app.post('/auth/login', async (req, res) => {
     } catch (err) { res.status(500).json({ error: 'Login failed' }); }
 });
 
-app.get('/auth/me', authMiddleware, async (req, res) => {
+app.get('/auth/me', authMiddleware, async (req: Request, res: Response) => {
     try {
-        const userId = req.user.userId;
+        const userId = req.user!.userId;
         const user = await getUser(userId);
         const account = await getAccount(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
@@ -118,9 +129,9 @@ app.get('/auth/me', authMiddleware, async (req, res) => {
     } catch (err) { res.status(500).json({ error: 'Failed to get user' }); }
 });
 
-app.put('/auth/me', authMiddleware, async (req, res) => {
+app.put('/auth/me', authMiddleware, async (req: Request, res: Response) => {
     try {
-        const userId = req.user.userId;
+        const userId = req.user!.userId;
         const { name, photo } = req.body;
         if (!name && !photo) return res.status(400).json({ error: 'Provide name or photo' });
         const updates: Partial<User> = {};
@@ -132,22 +143,22 @@ app.put('/auth/me', authMiddleware, async (req, res) => {
     } catch (err) { res.status(500).json({ error: 'Update failed' }); }
 });
 
-app.put('/auth/notifications', authMiddleware, async (req, res) => {
+app.put('/auth/notifications', authMiddleware, async (req: Request, res: Response) => {
     try {
-        const userId = req.user.userId;
+        const userId = req.user!.userId;
         const { action, notificationId, notificationIds } = req.body;
         const account = await getAccount(userId);
         if (!account) return res.status(404).json({ error: 'Account not found' });
         let notifications = account.notifications || [];
         switch (action) {
             case 'mark_read':
-                notifications = notifications.map(n => n.id == notificationId ? { ...n, read: true } : n);
+                notifications = notifications.map((n: any) => n.id == notificationId ? { ...n, read: true } : n);
                 break;
             case 'mark_all_read':
-                notifications = notifications.map(n => notificationIds.includes(n.id) ? { ...n, read: true } : n);
+                notifications = notifications.map((n: any) => notificationIds.includes(n.id) ? { ...n, read: true } : n);
                 break;
             case 'clear_all':
-                notifications = notifications.filter(n => !notificationIds.includes(n.id));
+                notifications = notifications.filter((n: any) => !notificationIds.includes(n.id));
                 break;
             default: return res.status(400).json({ error: 'Invalid action' });
         }
@@ -157,15 +168,15 @@ app.put('/auth/notifications', authMiddleware, async (req, res) => {
     } catch (err) { res.status(500).json({ error: 'Notification update failed' }); }
 });
 
-app.get('/api/users', authMiddleware, async (req, res) => {
+app.get('/api/users', authMiddleware, async (req: Request, res: Response) => {
     try {
         const snapshot = await db.collection('users').get();
-        const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const users = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
         res.json(users);
     } catch (err) { res.status(500).json({ error: 'Failed to get users' }); }
 });
 
-app.put('/api/users/:userId', authMiddleware, async (req, res) => {
+app.put('/api/users/:userId', authMiddleware, async (req: Request, res: Response) => {
     try {
         const { userId } = req.params;
         const updates = req.body;
@@ -175,16 +186,16 @@ app.put('/api/users/:userId', authMiddleware, async (req, res) => {
     } catch (err) { res.status(500).json({ error: 'Update failed' }); }
 });
 
-app.delete('/api/users/:userId', authMiddleware, async (req, res) => {
+app.delete('/api/users/:userId', authMiddleware, async (req: Request, res: Response) => {
     try {
         await db.collection('users').doc(req.params.userId).delete();
         res.json({ message: 'User deleted' });
     } catch (err) { res.status(500).json({ error: 'Delete failed' }); }
 });
 
-app.post('/api/codes', authMiddleware, async (req, res) => {
+app.post('/api/codes', authMiddleware, async (req: Request, res: Response) => {
     try {
-        const userId = req.user.userId;
+        const userId = req.user!.userId;
         const { title, language, description, files } = req.body;
         if (!title?.trim() || !files || !Array.isArray(files) || !language?.trim()) return res.status(400).json({ error: 'Required fields missing' });
         const user = await getUser(userId);
@@ -196,28 +207,35 @@ app.post('/api/codes', authMiddleware, async (req, res) => {
     } catch (err) { res.status(500).json({ error: 'Create code failed' }); }
 });
 
-app.put('/api/codes/:codeId', authMiddleware, async (req, res) => {
+app.put('/api/codes/:codeId', authMiddleware, async (req: Request, res: Response) => {
     try {
-        const userId = req.user.userId;
+        const userId = req.user!.userId;
         const { codeId } = req.params;
         const { title, language, description, files } = req.body;
         if (!title?.trim() || !files || !Array.isArray(files) || !language?.trim()) return res.status(400).json({ error: 'Required fields missing' });
         const user = await getUser(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
-        const idx = user.codes.findIndex(c => c.id == codeId);
-        if (idx === -1) return res.status(404).json({ error: 'Code not found' });
-        user.codes[idx] = { ...user.codes[idx], title, language, description, files, updatedAt: new Date().toISOString() };
+        const idx = user.codes.findIndex(c => c.id == Number(codeId));
+        let resultCode: Code;
+        if (idx !== -1) {
+            user.codes[idx] = { ...user.codes[idx], title, language, description, files, updatedAt: new Date().toISOString() };
+            resultCode = user.codes[idx];
+        } else {
+            const newCode: Code = { id: Date.now(), userid: userId, title, language, description, files, views: 0, likedBy: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+            user.codes.push(newCode);
+            resultCode = newCode;
+        }
         await updateUser(userId, { codes: user.codes });
-        res.json(user.codes[idx]);
+        res.status(201).json(resultCode);
     } catch (err) { res.status(500).json({ error: 'Update code failed' }); }
 });
 
-app.delete('/api/codes/:codeId', authMiddleware, async (req, res) => {
+app.delete('/api/codes/:codeId', authMiddleware, async (req: Request, res: Response) => {
     try {
-        const userId = req.user.userId;
+        const userId = req.user!.userId;
         const user = await getUser(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
-        const idx = user.codes.findIndex(c => c.id == req.params.codeId);
+        const idx = user.codes.findIndex(c => c.id == Number(req.params.codeId));
         if (idx === -1) return res.status(404).json({ error: 'Code not found' });
         user.codes.splice(idx, 1);
         await updateUser(userId, { codes: user.codes });
@@ -225,28 +243,28 @@ app.delete('/api/codes/:codeId', authMiddleware, async (req, res) => {
     } catch (err) { res.status(500).json({ error: 'Delete code failed' }); }
 });
 
-app.get('/api/codes/:codeId', authMiddleware, async (req, res) => {
+app.get('/api/codes/:codeId', authMiddleware, async (req: Request, res: Response) => {
     try {
         const { codeId } = req.params;
         const snapshot = await db.collection('users').get();
         for (const doc of snapshot.docs) {
             const userData = doc.data() as User;
             const codes = userData.codes || [];
-            const code = codes.find(c => c.id == codeId);
+            const code = codes.find(c => c.id == Number(codeId));
             if (code) return res.json(code);
         }
         res.status(404).json({ error: 'Code not found' });
     } catch (err) { res.status(500).json({ error: 'Get code failed' }); }
 });
 
-app.post('/api/codes/:codeId/like', authMiddleware, async (req, res) => {
+app.post('/api/codes/:codeId/like', authMiddleware, async (req: Request, res: Response) => {
     try {
-        const userId = req.user.userId;
+        const userId = req.user!.userId;
         const snapshot = await db.collection('users').get();
         for (const doc of snapshot.docs) {
             const userData = doc.data() as User;
             const codes = userData.codes || [];
-            const idx = codes.findIndex(c => c.id == req.params.codeId);
+            const idx = codes.findIndex(c => c.id == Number(req.params.codeId));
             if (idx !== -1) {
                 const likedBy = codes[idx].likedBy || [];
                 const already = likedBy.includes(userId);
@@ -261,31 +279,38 @@ app.post('/api/codes/:codeId/like', authMiddleware, async (req, res) => {
     } catch (err) { res.status(500).json({ success: false, error: 'Like failed' }); }
 });
 
-app.post('/api/codes/:codeId/view', authMiddleware, async (req, res) => {
+app.post('/api/codes/:codeId/view', authMiddleware, async (req: Request, res: Response) => {
     try {
         const snapshot = await db.collection('users').get();
         for (const doc of snapshot.docs) {
             const userData = doc.data() as User;
             const codes = userData.codes || [];
-            const idx = codes.findIndex(c => c.id == req.params.codeId);
+            const idx = codes.findIndex(c => c.id == Number(req.params.codeId));
             if (idx !== -1) {
                 codes[idx].views = (codes[idx].views || 0) + 1;
                 await db.collection('users').doc(doc.id).update({ codes });
                 return res.json({ success: true, views: codes[idx].views });
             }
         }
-        res.status(404).json({ error: 'Code not found' });
-    } catch (err) { res.status(500).json({ error: 'View failed' }); }
+        res.status(404).json({ success: false, error: 'Code not found' });
+    } catch (err) { res.status(500).json({ success: false, error: 'View failed' }); }
 });
 
-app.get('/:name', (req, res) => {
+app.get('/:name', (req: Request, res: Response) => {
     const filePath = path.join(__dirname, `../public/static/${req.params.name}`);
-    fs.existsSync(filePath) ? res.sendFile(filePath) : res.status(404).json({ error: 'Not found' });
+    fs.existsSync(filePath) ? res.sendFile(filePath) : res.redirect('/pagenotfound');
 });
 
-app.use((err, req, res, next) => {
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     console.error('Error:', err);
     res.status(500).json({ error: 'Internal server error' });
 });
 
 export default app;
+
+if (require.main === module) {
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+    });
+}

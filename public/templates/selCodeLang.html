@@ -7,7 +7,7 @@
     <title>SoloLearn 2.0 - Select Language</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
         crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <link rel="stylesheet" href="../static/styles.css" />
+    <link rel="stylesheet" href="/styles.css" />
     <style>
         .lang-selector-container {
             display: flex;
@@ -124,10 +124,10 @@
                 </div>
                 <h3 class="lang-title">Web Development</h3>
                 <p class="lang-description">
-                    Create interactive websites with HTML, CSS, and JavaScript. Perfect for front-end development and web applications.
+                    Create interactive websites with HTML, CSS, and JavaScript. Perfect for front-end development and
+                    web applications.
                 </p>
             </div>
-            <!--
             <div class="lang-option" onclick="selectLanguage('python')">
                 <div class="lang-icon">
                     <i class="fab fa-python"></i>
@@ -182,13 +182,19 @@
                     High-performance language for system programming, game development, and performance-critical applications.
                 </p>
             </div>
-            -->
         </div>
     </div>
 
+    <script src="/authService.js"></script>
+    <script src="/router.js"></script>
     <script>
         function selectLanguage(lang) {
-            window.location.href = `/playground/${lang}`;
+            if (typeof Router?.routers?.playground !== 'undefined') {
+                window.location.href = `${Router.routers.playground}/${lang}`;
+            } else {
+                alert('Redirection error');
+                console.error('Redirection error: routers not defined');
+            }
         }
     </script>
 </body>

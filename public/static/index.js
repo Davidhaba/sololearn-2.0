@@ -3,12 +3,29 @@ const AppState = {
     users: null,
     currentUser: null,
     notifications: [],
-    currentEditingCode: null,
     consoleMessages: []
 };
 
 function getToken() {
     return (typeof AuthService !== 'undefined') ? AuthService.getToken() || null : null;
+}
+
+function getHeaders(withToken = true) {
+    const headers = { 'Content-Type': 'application/json' };
+    if (withToken) {
+        const token = getToken();
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+    }
+    return headers;
+}
+
+async function updateUsers() {
+    if (typeof AuthService !== 'undefined') {
+        const allUsers = await AuthService.getAllUsers();
+        const currentUser = await AuthService.getCurrentUser();
+        if (allUsers && Array.isArray(allUsers) && allUsers.length) AppState.users = allUsers;
+        if (currentUser && currentUser.id) AppState.currentUser = currentUser;
+    }
 }
 
 (function captureConsole() {
@@ -33,7 +50,7 @@ function getToken() {
 function getSkeletonHtml(type) {
     if (type === 'notifications') {
         return `
-            <div style="padding: 20px;">
+            <div>
                 <div style="display: flex; align-items: center; gap: 12px; padding: 16px; background: rgba(255, 255, 255, 0.02); border-radius: 8px; margin-bottom: 12px; border: 1px solid rgba(255, 255, 255, 0.06);">
                     <div class="skeleton" style="width: 40px; height: 40px; border-radius: 8px;"></div>
                     <div style="flex: 1;">
@@ -62,7 +79,7 @@ function getSkeletonHtml(type) {
         `;
     } else if (type === 'leaderboard') {
         return `
-            <div style="padding: 20px;">
+            <div>
                 <div style="display: flex; align-items: center; gap: 12px; padding: 14px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(236, 72, 153, 0.05)); border-radius: 12px; margin-bottom: 10px; border: 1px solid rgba(148, 163, 184, 0.1);">
                     <div class="skeleton" style="width: 36px; height: 36px; border-radius: 8px;"></div>
                     <div style="flex: 1;">
@@ -92,8 +109,8 @@ function getSkeletonHtml(type) {
     } else if (type === 'profile') {
         return `
             <div style="width: 100%;">
-                <div class="skeleton" style="width: 140px; height: 140px; border-radius: 50%; margin: 20px auto 16px;"></div>
-                <div style="padding: 0 20px;">
+                <div class="skeleton" style="width: 140px; height: 140px; border-radius: 50%; margin: 0 auto 16px;"></div>
+                <div>
                     <div class="skeleton" style="height: 28px; border-radius: 4px; margin-bottom: 4px; width: 60%; margin-left: auto; margin-right: auto;"></div>
                     <div class="skeleton" style="height: 16px; border-radius: 4px; margin-bottom: 12px; width: 40%; margin-left: auto; margin-right: auto;"></div>
                     
@@ -118,7 +135,7 @@ function getSkeletonHtml(type) {
         `;
     } else if (type === 'codes') {
         return `
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; padding: 20px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
                 <div style="display: flex; flex-direction: column; background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(236, 72, 153, 0.05)); border: 1px solid rgba(148, 163, 184, 0.1); border-radius: 12px; padding: 16px;">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 12px;">
                         <div style="display: flex; align-items: center; gap: 10px;">
@@ -233,20 +250,6 @@ function getAuthStoredUser() {
     return null;
 }
 
-async function fetchUsersFromApi() {
-    try {
-        const response = await fetch('/api/users', {
-            method: 'GET', headers: { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' }
-        });
-
-        if (!response.ok) throw new Error(response.status);
-        const data = await response.json();
-        return Array.isArray(data) ? data : null;
-    } catch (err) {
-        throw new Error(err.message);
-    }
-}
-
 async function initApp() {
     try {
         const currentUser = await AuthService?.getCurrentUser() || null;
@@ -263,7 +266,6 @@ async function initApp() {
         console.warn('Failed to update users:', e);
     }
     initializeEventListeners();
-    initializeCodeTab();
     updateMenuAuthButton();
     changeScreen('main');
 }
@@ -333,8 +335,6 @@ async function renderNotifications(user = null) {
             <i class="fas fa-trash"></i> Clear read
         </button>
     `;
-    header.appendChild(actions);
-    container.appendChild(header);
     const list = document.createElement('div');
     list.style.cssText = 'display: grid; gap: 12px;';
     notes.forEach((n, idx) => {
@@ -387,6 +387,9 @@ async function renderNotifications(user = null) {
         it.appendChild(right);
         list.appendChild(it);
     });
+    container.innerHTML = '';
+    header.appendChild(actions);
+    container.appendChild(header);
     container.appendChild(list);
     document.getElementById('markAllReadBtn')?.addEventListener('click', () => {
         markAllNotificationsRead();
@@ -424,19 +427,19 @@ function markAllNotificationsRead() {
 function clearReadNotifications() {
     const user = getAuthStoredUser();
     if (!user) return;
-    const unreadNotifications = user.notifications.filter(n => !n.read);
-    const unreadIds = unreadNotifications.map(n => n.id);
-    user.notifications = unreadNotifications;
+    const readNotifications = user.notifications.filter(n => n.read);
+    const readIds = readNotifications.map(n => n.id);
+    user.notifications = user.notifications.filter(n => !n.read);
     updateNotifEl(user);
-    persistNotificationOperation('clear_all', { notificationIds: unreadIds }).catch(() => { });
+    persistNotificationOperation('clear_all', { notificationIds: readIds }).catch(() => { });
 }
 
 async function persistNotificationOperation(action, data) {
     if (typeof AuthService === 'undefined' || !AuthService.isAuthenticated()) return;
     try {
-        const res = await fetch('/auth/notifications', {
+        const res = await fetch(Router.routers.authNotifications, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+            headers: getHeaders(true),
             body: JSON.stringify({ action, ...data })
         });
         const resData = await res.json();
@@ -547,6 +550,10 @@ function initializeEventListeners() {
     const profileCancelBtn = document.getElementById('profileCancelBtn');
     if (profileSaveBtn) profileSaveBtn.addEventListener('click', (e) => saveProfileChanges(e.target));
     if (profileCancelBtn) profileCancelBtn.addEventListener('click', cancelProfileEdit);
+
+    document.querySelector('#code').querySelectorAll('.filterBtn').forEach(b => b.addEventListener('click', () => displayCodes(b.getAttribute('data-filter'))));
+    const createCodeBtn = document.getElementById('createCodeBtn');
+    if (createCodeBtn) createCodeBtn.addEventListener('click', () => openCodeEditor());
 }
 
 function updateMenuAuthButton() {
@@ -621,7 +628,7 @@ function openProfileEditor() {
     const photoIn = document.getElementById('profileEditorPhoto');
     if (nameIn) nameIn.value = user.name || '';
     if (photoIn) photoIn.value = user.photo || '';
-    changeScreen('profileEditor');
+    changeScreen('profileEditor', true);
     const btn = document.getElementById('profileSaveBtn');
     if (btn) {
         btn.innerHTML = '<i class="fas fa-check"></i> Save';
@@ -652,8 +659,8 @@ async function saveProfileChanges(btn) {
     }
 
     try {
-        const res = await fetch('/auth/me', {
-            method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+        const res = await fetch(Router.routers.authMe, {
+            method: 'PUT', headers: getHeaders(true),
             body: JSON.stringify({ name, photo })
         });
         const data = await res.json();
@@ -666,8 +673,6 @@ async function saveProfileChanges(btn) {
         if (sideName) sideName.textContent = AppState.currentUser?.name || 'Unknown';
         const sideAvatar = document.getElementById('sideMenuAvatar');
         if (sideAvatar) sideAvatar.src = AppState.currentUser?.photo || createInitialsAvatar(AppState.currentUser?.name || 'Unknown');
-
-        try { await updateUsers(); } catch (e) { }
 
         showNotification('Profile updated');
         changeScreen('userProfile');
@@ -771,23 +776,9 @@ function changeScreen(screenId, isHidePanels = false) {
         'code': 'Code',
         'userProfile': 'Profile',
         'notificationsScreen': 'Notifications',
-        'codeEditor': 'Code Editor',
         'profileEditor': 'Profile Editor'
     };
     document.getElementById('droptopTitle').textContent = titles[screenId] || screenId;
-}
-
-async function updateUsers() {
-    const onlineUsers = await fetchUsersFromApi();
-    if (onlineUsers && Array.isArray(onlineUsers) && onlineUsers.length) {
-        AppState.users = onlineUsers;
-        if (AuthService && typeof AuthService.getCurrentUser === 'function') {
-            const storedUser = await AuthService.getCurrentUser();
-            if (storedUser) AppState.currentUser = storedUser;
-        }
-        return;
-    }
-    throw new Error('No users data received from API');
 }
 
 async function loadProfileById(id = null) {
@@ -1232,34 +1223,12 @@ function showNotification(message) {
 }
 
 async function sendLikeToServer(codeId) {
-    const token = getToken();
-    const headers = { 'Content-Type': 'application/json' };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-
-    const res = await fetch(`/api/codes/${codeId}/like`, {
-        method: 'POST',
-        headers
-    });
-
+    const res = await fetch(`${Router.routers.apiCodes}/${codeId}/like`, { method: 'POST', headers: getHeaders(true) });
+    const data = await res.json();
     if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || 'Failed to like code');
+        throw new Error(data.error || 'Failed to like code');
     }
-
-    return res.json();
-}
-
-function initializeCodeTab() {
-    document.querySelector('#code').querySelectorAll('.filterBtn').forEach(b => b.addEventListener('click', () => displayCodes(b.getAttribute('data-filter'))));
-    const createCodeBtn = document.getElementById('createCodeBtn');
-    if (createCodeBtn) {
-        createCodeBtn.addEventListener('click', () => openCodeEditor());
-    }
-
-    const publishBtn = document.getElementById('editorPublishBtn');
-    const discardBtn = document.getElementById('editorDiscardBtn');
-    if (publishBtn) publishBtn.addEventListener('click', publishCode);
-    if (discardBtn) discardBtn.addEventListener('click', discardCode);
+    return data || null;
 }
 
 function getAllCodes() {
@@ -1332,9 +1301,8 @@ function displayCodes(filterType) {
     container.querySelectorAll('[data-code-id]').forEach(card => {
         card.addEventListener('click', (e) => {
             if (!e.target.closest('button')) {
-                const codeId = card.getAttribute('data-code-id');
-                const code = getAllCodes().find(c => String(c.id) === String(codeId));
-                if (code) showCodeDetail(code);
+                const codeid = card.getAttribute('data-code-id');
+                if (codeid) openCodeEditor(codeid);
                 else showNotification('Code not found');
             }
         });
@@ -1402,14 +1370,6 @@ function displayCodes(filterType) {
             }
         });
     });
-    container.querySelectorAll('.editCodeBtn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const codeId = btn.getAttribute('data-code-id');
-            const code = getAllCodes().find(c => String(c.id) === String(codeId));
-            if (code) openCodeEditor(code);
-        });
-    });
     container.querySelectorAll('.deleteCodeBtn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -1440,7 +1400,7 @@ function buildCodeCard(code) {
                 <span class="codeBadge">${escapeHtml(code.language)}</span>
             </div>
             <h3 class="codeCardTitle">${escapeHtml(code.title)}</h3>
-            <p class="codeCardDescription">${escapeHtml(code.description)}</p>
+            <p class="codeCardDescription">${escapeHtml(code.description) || 'No description provided'}</p>
             <div class="codeCardFooter">
                 <div style="display: flex; gap: 16px; flex: 1;">
                     <span><i class="fas fa-eye"></i> ${code.views}</span>
@@ -1448,204 +1408,28 @@ function buildCodeCard(code) {
                         <i class="fas fa-heart"></i><div class="likesText">${Array.isArray(code.likedBy) ? code.likedBy.length : 0}</div>
                     </button>
                 </div>
-                ${isMyCode ? `<div style="display: flex; gap: 6px;">
-                    <button class="editCodeBtn primary-button" data-code-id="${code.id}" style="padding: 6px 12px; font-size: 12px;"><i class="fas fa-edit"></i> Edit</button>
-                    <button class="deleteCodeBtn secondary-button" data-code-id="${code.id}" style="padding: 8px 10px; font-size: 12px; border-color: var(--danger); color: var(--danger);"><i class="fas fa-trash"></i></button>
+                ${isMyCode ? `<div>
+                    <button class="deleteCodeBtn secondary-button" data-code-id="${code.id}"><i class="fas fa-trash"></i><span>Delete</span></button>
                 </div>` : ''}
             </div>
         </div>
     `;
 }
 
-async function showCodeDetail(code) {
-    const user = getUserById(code.userid);
-    if (!user) return;
-    const prevCard = document.querySelector('#codeDetailModal');
-    if (prevCard) prevCard.remove();
-    const modal = document.createElement('div');
-    modal.id = 'codeDetailModal';
-    modal.style.cssText = 'position:fixed;inset:0;background:rgba(2,6,23,0.8);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px;';
-
-    const content = document.createElement('div');
-    content.style.cssText = 'display:flex;flex-direction:column;width:100%;max-width:800px;max-height:90%;overflow-y:auto;background:linear-gradient(180deg, #0b1220, #0f1724);border-radius:16px;padding:10px 20px;border:1px solid rgba(255,255,255,0.04);box-shadow:0 12px 48px rgba(2,6,23,0.7);color:var(--text-primary);font-family:inherit;';
-
-    content.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <button class="code-close secondary-button" style="padding: 8px 10px;">✕</button>
-                <h3 style="line-height: 1; flex:1; margin: 10px; color: var(--text-primary);">${escapeHtml(code.title.trim())}</h3>
-                <span class="codeBadge" style="display: inline-block;">${escapeHtml(code.language.trim())}</span>
-        </div>
-        
-        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1);">
-            ${createUserAvatar(user.photo, user.name, `style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;"`)}
-            <div style="flex: 1;">
-                <p style="margin: 0; font-weight: 600;">${escapeHtml(user.name)}</p>
-                <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--text-secondary);">${new Date(code.updatedAt).toLocaleString()}</p>
-            </div>
-            <div style="display: flex; gap: 12px;">
-                <div style="text-align: center;">
-                    <p class="viewsCount" style="margin: 0; font-size: 18px; font-weight: 600;">${(code.views + 1) || 1}</p>
-                    <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-secondary);">Views</p>
-                </div>
-                <div style="text-align: center;">
-                    <p style="margin: 0; font-size: 18px; font-weight: 600;">${Array.isArray(code.likedBy) ? code.likedBy.length : 0}</p>
-                    <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-secondary);">Likes</p>
-                </div>
-            </div>
-        </div>
-        
-        <p style="color: var(--text-secondary); margin-bottom: 16px;">${escapeHtml(code.description) || 'No description provided'}</p>
-        
-        <div style="flex:1;min-height: 100px; overflow: auto; background: rgba(99, 102, 241, 0.08); border-radius: 12px; padding: 16px; border: 1px solid rgba(99, 102, 241, 0.2);">
-            <pre style="margin: 0; color: var(--text-primary); font-family: 'Monaco', 'Menlo', monospace; font-size: 12px;"><code>${escapeHtml(code.code)}</code></pre>
-        </div>`;
-    modal.appendChild(content);
-    document.body.appendChild(modal);
-    const closeBtn = content.querySelector('.code-close');
-    if (closeBtn) closeBtn.addEventListener('click', () => modal.remove());
-
-    try {
-        const res = await fetch(`/api/codes/${code.id}/view`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' }
-        });
-        if (res.ok) {
-            const data = await res.json();
-            if (data && data.success) {
-                code.views = data.views;
-                const viewsCountEl = content.querySelector('.viewsCount');
-                if (viewsCountEl) viewsCountEl.textContent = String(data.views || 0);
-                const ownerId = code.userid;
-                if (ownerId && Array.isArray(AppState.users)) {
-                    const owner = AppState.users.find(u => String(u.id) === String(ownerId));
-                    if (owner && owner.codes) {
-                        const cidx = owner.codes.findIndex(c => String(c.id) === String(code.id));
-                        if (cidx !== -1) {
-                            owner.codes[cidx].views = data.views;
-                        }
-                    }
-                }
-            }
-        }
-    } catch (e) {
-        if (e) console.warn('Failed to increment views:', e.message);
-    }
-}
-
-function openCodeEditor(codeToEdit = null) {
+function openCodeEditor(codeid = null) {
     if (typeof AuthService === 'undefined' || !AuthService.isAuthenticated()) {
-        if (codeToEdit) showNotification('Please log in to edit code.');
+        if (codeid) showNotification('Please log in to edit code.');
         else showNotification('Please sign in to create code.');
         return;
     }
-    Router.redirectTo(Router.routers?.playground + '/' + (codeToEdit ? codeToEdit.id : ''));
-    return;
-    /*
-    AppState.currentEditingCode = codeToEdit;
-    changeScreen('codeEditor', true);
-
-    document.getElementById('editorTitle').value = (codeToEdit && codeToEdit.title) ? codeToEdit.title : '';
-    document.getElementById('editorLanguage').value = (codeToEdit && codeToEdit.language) ? codeToEdit.language : 'SelectLanguage';
-    document.getElementById('editorDescription').value = (codeToEdit && codeToEdit.description) ? codeToEdit.description : '';
-    document.getElementById('editorContent').value = (codeToEdit && codeToEdit.code) ? codeToEdit.code : '';
-
-    const publishBtn = document.getElementById('editorPublishBtn');
-    if (publishBtn) {
-        publishBtn.innerHTML = codeToEdit
-            ? '<i class="fas fa-save"></i> Save Changes'
-            : '<i class="fas fa-cloud-arrow-up"></i> Publish Code';
-        publishBtn.disabled = false;
-    }
-    document.getElementById('editorTitle').focus();
-    */
+    Router.redirectTo(Router.routers?.playground + '/' + (codeid || ''));
 }
 
-async function publishCode() {
-    const title = document.getElementById('editorTitle').value.trim();
-    const langVal = document.getElementById('editorLanguage').value;
-    const language = langVal !== 'SelectLanguage' ? langVal : '';
-    const description = document.getElementById('editorDescription').value.trim();
-    const code = document.getElementById('editorContent').value.trim();
-
-    if (!title) {
-        showNotification('❌ Title is required');
-        return;
-    }
-    if (!language) {
-        showNotification('❌ Language is required');
-        return;
-    }
-    if (!code) {
-        showNotification('❌ Code content is required');
-        return;
-    }
-    if (code.length < 10) {
-        showNotification('❌ Code must be at least 10 characters');
-        return;
-    }
-    const editing = AppState.currentEditingCode;
-    const editingId = editing && (editing.id || editing.codeId) ? (editing.id || editing.codeId) : null;
-    const codeId = Number(editingId);
-    const isEditing = codeId && isFinite(codeId);
-    const publishBtn = document.getElementById('editorPublishBtn');
-    if (publishBtn) {
-        publishBtn.disabled = true;
-        publishBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${isEditing ? 'Updating' : 'Publishing'}...`;
-    }
+async function deleteCodeOnServer(codeid) {
     try {
-        if (isEditing) {
-            await updateCodeOnServer(codeId, title, language, description, code);
-        } else {
-            await createCodeOnServer(title, language, description, code);
-        }
-        showNotification(`✅ Code ${isEditing ? 'updated' : 'published'} successfully!`);
-        AppState.currentEditingCode = null;
-        try { await updateUsers(); } catch { }
-        changeScreen('code');
-        displayCodes('myCode');
-    } catch (e) {
-        console.error('publishCode error:', e.message);
-        showNotification(`❌ Failed to ${isEditing ? 'update' : 'publish'}. ${e.message}`);
-    } finally {
-        if (publishBtn) {
-            publishBtn.disabled = false;
-            publishBtn.innerHTML = isEditing ? '<i class="fas fa-save"></i> Save Changes' : '<i class="fas fa-cloud-arrow-up"></i> Publish Code';
-        }
-    }
-}
-
-async function createCodeOnServer(title, language, description, code) {
-    const response = await fetch('/api/codes', {
-        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
-        body: JSON.stringify({ title, language, description, code })
-    });
-    const data = await response.json();
-    if (!response.ok) {
-        throw new Error(data.error || 'An error occurred');
-    }
-    return data;
-}
-
-async function updateCodeOnServer(codeId, title, language, description, code) {
-    const response = await fetch(`/api/codes/${codeId}`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
-        body: JSON.stringify({ title, language, description, code })
-    });
-    const data = await response.json();
-    if (!response.ok) {
-        throw new Error(data.error || 'An error occurred');
-    }
-    return data;
-}
-
-async function deleteCodeOnServer(codeId) {
-    try {
-        const response = await fetch(`/api/codes/${codeId}`, {
-            method: 'DELETE', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` }
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
+        const res = await fetch(`${Router.routers.apiCodes}/${codeid}`, { method: 'DELETE', headers: getHeaders(true) });
+        if (!res.ok) {
+            const error = await res.json();
             throw new Error(error.error || 'Failed to delete code');
         }
         await updateUsers();
@@ -1656,30 +1440,6 @@ async function deleteCodeOnServer(codeId) {
         console.error('deleteCodeOnServer error:', e.message);
         showNotification(`❌ Error: ${e.message}`);
     }
-}
-
-function discardCode() {
-    const fields = [
-        { el: document.getElementById('editorTitle'), key: 'title' },
-        { el: document.getElementById('editorLanguage'), key: 'language' },
-        { el: document.getElementById('editorDescription'), key: 'description' },
-        { el: document.getElementById('editorContent'), key: 'code' }
-    ];
-    const currCode = AppState.currentEditingCode;
-    const hasChanges = fields.some(({ el, key }) => {
-        const origValue = el.value.trim();
-        if (currCode) {
-            const currValue = currCode[key];
-            return currValue && currValue !== origValue;
-        } else {
-            if (key === 'language') return origValue !== 'SelectLanguage';
-            return origValue !== '';
-        }
-    });
-    if (hasChanges && !confirm('Are you sure you want to discard your changes?')) return;
-    AppState.currentEditingCode = null;
-    fields.forEach(({ el }) => el.value = '');
-    changeScreen('code');
 }
 
 if (!(typeof navigator === 'undefined' || navigator.userAgent.includes('wv'))) {

@@ -332,6 +332,7 @@ input[type="checkbox"]:checked::after {
     align-items: center;
     justify-content: center;
     text-align: center;
+    line-height: 1.5;
     top: -5px;
     right: -5px;
     box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
@@ -611,7 +612,7 @@ input[type="checkbox"]:checked::after {
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 16px;
     position: relative;
-    min-height: 200px;
+    min-height: 100px;
 }
 
 .codeCard {
@@ -633,7 +634,7 @@ input[type="checkbox"]:checked::after {
     left: 0;
     right: 0;
     height: 2px;
-    background: linear-gradient(90deg, var(--primary), var(--secondary), transparent);
+    background: linear-gradient(90deg, transparent, var(--primary), var(--secondary), transparent);
     opacity: 0;
     transition: opacity 0.3s;
 }
@@ -718,7 +719,48 @@ input[type="checkbox"]:checked::after {
     border: none;
     color: var(--text-secondary);
     cursor: pointer;
-    transition: all 0.2s;
+}
+
+.likeCodeBtn i {
+    transition: color 0.2s;
+}
+
+.likeCodeBtn.liked i {
+    color: #ef4444;
+}
+
+.deleteCodeBtn {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    overflow: hidden;
+    gap: 4px;
+    padding: 8px 10px;
+    font-size: 12px;
+    border-color: var(--danger);
+    max-width: 35px;
+    transition: .3s ease;
+}
+
+.deleteCodeBtn:hover,
+.deleteCodeBtn:focus {
+    max-width: 100px;
+    padding: 8px 10px;
+}
+
+.deleteCodeBtn i {
+    color: var(--danger);
+}
+
+.deleteCodeBtn span {
+    opacity: 0;
+    overflow: hidden;
+    transition: .3s ease;
+}
+
+.deleteCodeBtn:hover span,
+.deleteCodeBtn:focus span {
+    opacity: 1;
 }
 
 .createCodeBtn {
@@ -756,73 +798,6 @@ input[type="checkbox"]:checked::after {
 .createCodeBtn:focus {
     max-width: 200px !important;
     box-shadow: 0 16px 40px rgba(99, 102, 241, 0.6);
-}
-
-#codeDetailModal {
-    animation: fadeIn 0.3s ease-in;
-}
-
-#codeDetailModal>div::-webkit-scrollbar {
-    width: 8px;
-}
-
-#codeDetailModal>div::-webkit-scrollbar-track {
-    background: rgba(99, 102, 241, 0.05);
-    border-radius: 10px;
-}
-
-#codeDetailModal>div::-webkit-scrollbar-thumb {
-    background: rgba(99, 102, 241, 0.3);
-    border-radius: 10px;
-}
-
-#codeDetailModal>div::-webkit-scrollbar-thumb:hover {
-    background: rgba(99, 102, 241, 0.5);
-}
-
-#codeEditor {
-    gap: 16px;
-}
-
-#codeEditor input,
-#codeEditor select,
-#codeEditor textarea {
-    transition: all 0.3s ease;
-}
-
-#codeEditor input:hover,
-#codeEditor select:hover,
-#codeEditor textarea:hover {
-    border-color: rgba(99, 102, 241, 0.4);
-}
-
-#codeEditor input:focus,
-#codeEditor select:focus,
-#codeEditor textarea:focus {
-    outline: none;
-    border-color: var(--primary);
-    background: rgba(99, 102, 241, 0.12);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-}
-
-#editorContent {
-    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Courier New', monospace !important;
-    tab-size: 4;
-    -moz-tab-size: 4;
-}
-
-#editorPublishBtn:hover {
-    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
-}
-
-#editorDiscardBtn:hover {
-    background: rgba(239, 68, 68, 0.1);
-    border-color: rgba(239, 68, 68, 0.5);
-}
-
-#codeEditor option {
-    background-color: var(--surface);
-    color: var(--text-primary);
 }
 
 #sideMenuOverlay {

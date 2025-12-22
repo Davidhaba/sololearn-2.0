@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page Not Found</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #5d74d6;
+            text-align: center;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 50px;
+        }
+
+        .notFound {
+            width: 200px;
+            margin: 0 auto 20px auto;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .notFound p {
+            font-size: 14px;
+            text-align: right;
+        }
+
+        .notFound .oops {
+            text-align: left;
+        }
+
+        .notFound h1 {
+            font-size: 120px;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        .doesnExist .tp {
+            color: #dee1e6;
+            font-size: 16px;
+        }
+
+        .doesnExist .de {
+            font-size: 24px;
+            margin-top: 5px;
+            font-weight: bold;
+            text-align: right;
+        }
+
+        a {
+            display: inline-block;
+            margin-top: 30px;
+            padding: 12px 30px;
+            background-color: white;
+            color: #667eea;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        a::after {
+            content: '';
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: -100%;
+            background: rgba(0, 0, 0, 0.3);
+            transition: 0.2s ease;
+        }
+
+        a:hover {
+            color: #564fd6;
+        }
+
+        a:hover::after {
+            left: 0;
+        }
+
+        a:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+
+<body>
+
+</body>
+<div class="notFound">
+    <p class="oops">Oops!</p>
+    <h1>404</h1>
+    <p>Page Not Found</p>
+</div>
+<div class="doesnExist">
+    <div>
+        <div class="tp">The page you are looking for</div>
+        <p class="de">doesn't exist.</p>
+    </div>
+    <a href="/dashboard">Go to Dashboard</a>
+</div>
+
+</html>
