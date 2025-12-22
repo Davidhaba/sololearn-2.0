@@ -296,6 +296,97 @@ app.post('/api/codes/:codeId/view', authMiddleware, async (req: Request, res: Re
     } catch (err) { res.status(500).json({ success: false, error: 'View failed' }); }
 });
 
+app.post('/api/execute', authMiddleware, async (req: Request, res: Response) => {
+    try {
+        const { language, files } = req.body;
+        
+        if (!language || !files || !Array.isArray(files)) {
+            return res.status(400).json({ error: 'Invalid request' });
+        }
+
+        const { execSync } = require('child_process');
+        const os = require('os');
+        const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'playground-'));
+        
+        let output = '';
+        let error = '';
+
+        try {
+            switch (language.toLowerCase()) {
+                case 'python': {
+                    const pythonFile = path.join(tempDir, 'script.py');
+                    const content = files[0]?.content || '';
+                    fs.writeFileSync(pythonFile, content);
+                    output = execSync(`python "${pythonFile}"`, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 });
+                    break;
+                }
+                case 'javascript': {
+                    const jsFile = path.join(tempDir, 'script.js');
+                    const content = files[0]?.content || '';
+                    fs.writeFileSync(jsFile, content);
+                    output = execSync(`node "${jsFile}"`, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 });
+                    break;
+                }
+                case 'php': {
+                    const phpFile = path.join(tempDir, 'script.php');
+                    const content = files[0]?.content || '';
+                    fs.writeFileSync(phpFile, content);
+                    output = execSync(`php "${phpFile}"`, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 });
+                    break;
+                }
+                case 'java': {
+                    const javaFile = path.join(tempDir, 'Main.java');
+                    let content = files[0]?.content || '';
+                    content = content.replace(/class\s+\w+/g, 'class Main');
+                    fs.writeFileSync(javaFile, content);
+                    execSync(`javac "${javaFile}"`, { cwd: tempDir, maxBuffer: 10 * 1024 * 1024 });
+                    output = execSync(`java -cp "${tempDir}" Main`, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 });
+                    break;
+                }
+                case 'cpp': {
+                    const cppFile = path.join(tempDir, 'program.cpp');
+                    const exeFile = path.join(tempDir, 'program');
+                    const content = files[0]?.content || '';
+                    fs.writeFileSync(cppFile, content);
+                    execSync(`g++ -o "${exeFile}" "${cppFile}"`, { maxBuffer: 10 * 1024 * 1024 });
+                    output = execSync(`"${exeFile}"`, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 });
+                    break;
+                }
+                case 'csharp': {
+                    const csFile = path.join(tempDir, 'Program.cs');
+                    const exeFile = path.join(tempDir, 'Program.exe');
+                    const content = files[0]?.content || '';
+                    fs.writeFileSync(csFile, content);
+                    execSync(`csc -out:"${exeFile}" "${csFile}"`, { maxBuffer: 10 * 1024 * 1024 });
+                    output = execSync(`"${exeFile}"`, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 });
+                    break;
+                }
+                case 'rust': {
+                    const rsFile = path.join(tempDir, 'main.rs');
+                    const exeFile = path.join(tempDir, 'main');
+                    const content = files[0]?.content || '';
+                    fs.writeFileSync(rsFile, content);
+                    execSync(`rustc -o "${exeFile}" "${rsFile}"`, { maxBuffer: 10 * 1024 * 1024 });
+                    output = execSync(`"${exeFile}"`, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 });
+                    break;
+                }
+                default:
+                    return res.status(400).json({ error: `Language '${language}' is not supported for execution` });
+            }
+        } catch (execError: any) {
+            error = execError.stderr?.toString() || execError.stdout?.toString() || execError.message || 'Execution failed';
+        }
+        fs.rmSync(tempDir, { recursive: true, force: true });
+        res.json({ 
+            success: !error,
+            output: output.trim() || (error ? '' : 'Program executed successfully with no output'),
+            error: error.trim() || ''
+        });
+    } catch (err: any) {
+        res.status(500).json({ error: err.message || 'Execution service error' });
+    }
+});
+
 app.get('/:name', (req: Request, res: Response) => {
     const filePath = path.join(__dirname, `../public/static/${req.params.name}`);
     fs.existsSync(filePath) ? res.sendFile(filePath) : res.redirect('/pagenotfound');

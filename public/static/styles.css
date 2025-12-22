@@ -1084,7 +1084,7 @@ input[type="checkbox"]:checked::after {
     }
 
     .appNotification {
-        font-size: 13px;
+        font-size: 14px;
         padding: 10px 16px;
     }
 }

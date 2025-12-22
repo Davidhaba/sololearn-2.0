@@ -696,7 +696,6 @@
     <script>
         let isMobile = false;
         let editors = {};
-        let language = 'web';
         let isEditName = false;
         let currentCode = {
             codeid: null,
@@ -1023,9 +1022,62 @@
             modal.classList.remove('active');
         }
 
+        async function executeCode() {
+            const loadingCodeScreen = document.getElementById('loadingCodeScreen');
+            loadingCodeScreen.style.display = 'flex';
+            const consoleDiv = document.getElementById('console');
+            if (consoleDiv) consoleDiv.innerHTML = '';
+            const files = currentCode.files.map(file => ({
+                name: file.name,
+                content: (editors[file.name] && typeof editors[file.name].getValue === 'function') 
+                    ? editors[file.name].getValue() 
+                    : ''
+            }));
+            try {
+                const response = await fetch('/api/execute', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${AuthService.getToken() || ''}`
+                    },
+                    body: JSON.stringify({
+                        language: currentCode.language,
+                        files: files
+                    })
+                });
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    if (data.output) {
+                        const message = document.createElement('div');
+                        message.className = 'console-log';
+                        message.textContent = data.output;
+                        consoleDiv.appendChild(message);
+                    }
+                    if (data.error) {
+                        const message = document.createElement('div');
+                        message.className = 'console-error';
+                        message.textContent = data.error;
+                        consoleDiv.appendChild(message);
+                    }
+                } else {
+                    const message = document.createElement('div');
+                    message.className = 'console-error';
+                    message.textContent = data.error || 'Execution failed';
+                    consoleDiv.appendChild(message);
+                }
+            } catch (error) {
+                const message = document.createElement('div');
+                message.className = 'console-error';
+                message.textContent = 'Error: ' + error.message;
+                consoleDiv.appendChild(message);
+            } finally {
+                loadingCodeScreen.style.display = 'none';
+            }
+        }
+
         function updatePreview(showPreview = true) {
             let fullHtml;
-            if (showPreview && language === 'web') {
+            if (showPreview && currentCode.language === 'web') {
                 const html = editors['HTML'].getValue();
                 const css = editors['CSS'].getValue();
                 const js = editors['JS'].getValue();
@@ -1148,7 +1200,7 @@
                 }
                 const title = document.getElementById('codeTitle').textContent || 'Untitled';
                 const filesToSave = currentCode.files.map(file => ({ name: file.name, content: (editors[file.name] && typeof editors[file.name].getValue === 'function') ? editors[file.name].getValue() : (file.content || '') }));
-                const body = { title, language, description: currentCode.description || '', files: filesToSave };
+                const body = { title, language: currentCode.language, description: currentCode.description || '', files: filesToSave };
                 document.getElementById('loadingCodeScreen').style.display = 'flex';
                 try {
                     let response;
@@ -1244,10 +1296,16 @@
                 }
             });
 
-            document.getElementById('runBtn').addEventListener('click', () => {
-                const btn = document.querySelector('[data-tab="previewContainer"]');
-                if (btn) btn.click();
-                else updatePreview();
+            document.getElementById('runBtn').addEventListener('click', async () => {
+                if (currentCode.language === 'web') {
+                    const btn = document.querySelector('[data-tab="previewContainer"]');
+                    if (btn) btn.click();
+                    else updatePreview();
+                } else {
+                    await executeCode();
+                    const consoleTab = document.querySelector('[data-tab="consoleContainer"]');
+                    if (consoleTab) consoleTab.click();
+                }
             });
 
             window.addEventListener('message', function (e) {
