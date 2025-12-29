@@ -652,8 +652,8 @@
                 </button>
             </div>
             <div class="playground-controls">
-                <button id="runBtn" class="run-btn"><i class="fas fa-play"></i> Run</button>
                 <button id="saveBtn" class="run-btn"><i class="fas fa-save"></i> Save</button>
+                <button id="runBtn" class="run-btn"><i class="fas fa-play"></i> Run</button>
             </div>
         </div>
         <div class="playground-main">
@@ -674,7 +674,7 @@
 
     <div id="editModal" class="edit-modal">
         <div class="edit-modal-content">
-            <div class="edit-modal-header">Edit Code</div>
+            <div class="edit-modal-header">Edit code info</div>
             <div class="edit-modal-field">
                 <label class="edit-modal-label">Name</label>
                 <input type="text" id="editModalTitle" class="edit-modal-input" placeholder="Enter code name" />
@@ -683,6 +683,12 @@
                 <label class="edit-modal-label">Description (optional)</label>
                 <textarea id="editModalDescription" class="edit-modal-textarea"
                     placeholder="No description provided."></textarea>
+            </div>
+            <div class="edit-modal-field">
+                <label class="edit-modal-label">
+                    <input type="checkbox" id="editModalPublic" style="width: auto; margin-right: 8px;">
+                    <span id="publicityLabel">Public</span>
+                </label>
             </div>
             <div class="edit-modal-actions">
                 <button class="secondary-button edit-modal-btn cancel" id="editModalCancel">Cancel</button>
@@ -703,6 +709,7 @@
             language: '',
             title: '',
             description: '',
+            isPublic: false,
             liked: false,
             likedBy: [],
             files: []
@@ -752,13 +759,14 @@
             lang = (lang || '').toLowerCase();
             switch (lang) {
                 case 'web':
+                case 'html':
                     return [
                         { name: 'HTML', content: '<!DOCTYPE html>\n<html>\n	<head>\n		<title>Page Title<\/title>\n	<\/head>\n	<body>\n		\n	<\/body>\n<\/html>' },
                         { name: 'CSS', content: 'body {\n    \n}' },
                         { name: 'JS', content: '' }
                     ];
                 case 'python':
-                    return [{ name: 'python', content: '# Write your Python code here\n' }];
+                    return [{ name: 'python', content: '# Write your Python code here\nprint("Hello, world!")' }];
                 case 'php':
                     return [{ name: 'php', content: "<?php\n// PHP code\n?>" }];
                 case 'rust':
@@ -933,6 +941,7 @@
             let title;
             let description;
             let language;
+            let isPublic = false;
             let liked;
             let likedBy = [];
             let files = [];
@@ -944,6 +953,7 @@
                     description = data.description;
                     language = data.language;
                     userid = data.userid;
+                    isPublic = data.isPublic !== false;
                     liked = (data.likedBy && AuthService.getCurrentUser()) ? data.likedBy.includes(AuthService.getStoredUser().id) : false;
                     likedBy = data.likedBy;
                     if (data.files) {
@@ -964,6 +974,7 @@
                 liked: liked || false,
                 title: title || 'Untitled',
                 description: description || '',
+                isPublic: isPublic,
                 likedBy: likedBy || [],
                 language,
                 files
@@ -1001,9 +1012,11 @@
         function saveTitle() {
             const newTitle = document.getElementById('editModalTitle')?.value?.trim() || 'Untitled';
             const newDescription = document.getElementById('editModalDescription')?.value?.trim() || '';
+            const isPublic = document.getElementById('editModalPublic')?.checked ?? false;
 
             document.getElementById('codeTitle').textContent = newTitle;
             currentCode.description = newDescription;
+            currentCode.isPublic = isPublic;
 
             closeEditModal();
         };
@@ -1011,8 +1024,10 @@
         function openEditModal() {
             const titleInput = document.getElementById('editModalTitle');
             const descriptionInput = document.getElementById('editModalDescription');
+            const publicCheckbox = document.getElementById('editModalPublic');
             if (titleInput) titleInput.value = document.getElementById('codeTitle').textContent;
             if (descriptionInput) descriptionInput.value = currentCode.description || '';
+            if (publicCheckbox) publicCheckbox.checked = currentCode.isPublic !== false;
             const modal = document.getElementById('editModal');
             modal.classList.add('active');
         }
@@ -1200,7 +1215,7 @@
                 }
                 const title = document.getElementById('codeTitle').textContent || 'Untitled';
                 const filesToSave = currentCode.files.map(file => ({ name: file.name, content: (editors[file.name] && typeof editors[file.name].getValue === 'function') ? editors[file.name].getValue() : (file.content || '') }));
-                const body = { title, language: currentCode.language, description: currentCode.description || '', files: filesToSave };
+                const body = { title, language: currentCode.language, description: currentCode.description || '', isPublic: currentCode.isPublic, files: filesToSave };
                 document.getElementById('loadingCodeScreen').style.display = 'flex';
                 try {
                     let response;

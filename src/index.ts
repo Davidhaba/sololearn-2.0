@@ -25,6 +25,7 @@ interface Code {
     files: { name: string; content: string }[];
     views: number;
     likedBy: string[];
+    isPublic: boolean;
     createdAt: string;
     updatedAt: string;
 }
@@ -53,24 +54,43 @@ admin.initializeApp({
 });
 const db = admin.firestore();
 
+async function getUsers(userId: string) {
+    const snapshot = await db.collection('users').get();
+    const users = snapshot.docs.map((doc: any) => {
+        const data = { id: doc.id, ...doc.data() };
+        if (data.codes && Array.isArray(data.codes)) {
+            data.codes = data.codes.filter((code: Code) => code.isPublic || code.userid === userId);
+        }
+        return data;
+    });
+    return users;
+}
+
 async function getUser(userId: string): Promise<User | null> {
     const doc = await db.collection('users').doc(userId).get();
     return doc.exists ? { id: doc.id, ...doc.data() } as User : null;
 }
 
-async function getAccount(userId: string) {
-    const doc = await db.collection('accounts').doc(userId).get();
-    return doc.exists ? doc.data() : null;
+async function updateUser(userId: string, updates: Partial<User>, updateTimestamp: boolean = true) {
+    if (updateTimestamp) {
+        updates.updatedAt = new Date().toISOString();
+    }
+    await db.collection('users').doc(userId).update({ ...updates });
 }
 
-async function updateUser(userId: string, updates: Partial<User>) {
-    await db.collection('users').doc(userId).update({ ...updates, updatedAt: new Date().toISOString() });
+async function getNotifications(userId: string) {
+    const doc = await db.collection('accounts').doc(userId).get();
+    if (doc.exists) {
+        const data = doc.data();
+        return data?.notifications || [];
+    } else {
+        throw new Error('Account not found');
+    }
+    return null;
 }
 
 async function sendNotification(userId: string, notification: { title: string; text: string }) {
-    const account = await getAccount(userId);
-    if (!account) throw new Error('Account not found');
-    const notifications = account.notifications || [];
+    const notifications = await getNotifications(userId) || [];
     notifications.push({ id: Date.now(), title: notification.title, text: notification.text, timestamp: new Date().toISOString(), read: false });
     await db.collection('accounts').doc(userId).update({ notifications });
 }
@@ -123,9 +143,9 @@ app.get('/auth/me', authMiddleware, async (req: Request, res: Response) => {
     try {
         const userId = req.user!.userId;
         const user = await getUser(userId);
-        const account = await getAccount(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
-        res.json({ user: { ...user, notifications: account?.notifications || [] } });
+        const notifications = await getNotifications(userId) || [];
+        res.json({ user: { ...user, notifications } });
     } catch (err) { res.status(500).json({ error: 'Failed to get user' }); }
 });
 
@@ -147,9 +167,7 @@ app.put('/auth/notifications', authMiddleware, async (req: Request, res: Respons
     try {
         const userId = req.user!.userId;
         const { action, notificationId, notificationIds } = req.body;
-        const account = await getAccount(userId);
-        if (!account) return res.status(404).json({ error: 'Account not found' });
-        let notifications = account.notifications || [];
+        let notifications = await getNotifications(userId) || [];
         switch (action) {
             case 'mark_read':
                 notifications = notifications.map((n: any) => n.id == notificationId ? { ...n, read: true } : n);
@@ -170,8 +188,8 @@ app.put('/auth/notifications', authMiddleware, async (req: Request, res: Respons
 
 app.get('/api/users', authMiddleware, async (req: Request, res: Response) => {
     try {
-        const snapshot = await db.collection('users').get();
-        const users = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+        const userId = req.user!.userId;
+        const users = await getUsers(userId);
         res.json(users);
     } catch (err) { res.status(500).json({ error: 'Failed to get users' }); }
 });
@@ -189,6 +207,7 @@ app.put('/api/users/:userId', authMiddleware, async (req: Request, res: Response
 app.delete('/api/users/:userId', authMiddleware, async (req: Request, res: Response) => {
     try {
         await db.collection('users').doc(req.params.userId).delete();
+        await db.collection('accounts').doc(req.params.userId).delete();
         res.json({ message: 'User deleted' });
     } catch (err) { res.status(500).json({ error: 'Delete failed' }); }
 });
@@ -196,13 +215,13 @@ app.delete('/api/users/:userId', authMiddleware, async (req: Request, res: Respo
 app.post('/api/codes', authMiddleware, async (req: Request, res: Response) => {
     try {
         const userId = req.user!.userId;
-        const { title, language, description, files } = req.body;
+        const { title, language, description, isPublic, files } = req.body;
         if (!title?.trim() || !files || !Array.isArray(files) || !language?.trim()) return res.status(400).json({ error: 'Required fields missing' });
         const user = await getUser(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
-        const newCode: Code = { id: Date.now(), userid: userId, title, language, description, files, views: 0, likedBy: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+        const newCode: Code = { id: Date.now(), userid: userId, title, language, description, files, views: 0, likedBy: [], isPublic: isPublic !== false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
         user.codes.push(newCode);
-        await updateUser(userId, { codes: user.codes });
+        await updateUser(userId, { codes: user.codes }, false);
         res.status(201).json(newCode);
     } catch (err) { res.status(500).json({ error: 'Create code failed' }); }
 });
@@ -211,21 +230,21 @@ app.put('/api/codes/:codeId', authMiddleware, async (req: Request, res: Response
     try {
         const userId = req.user!.userId;
         const { codeId } = req.params;
-        const { title, language, description, files } = req.body;
+        const { title, language, description, isPublic, files } = req.body;
         if (!title?.trim() || !files || !Array.isArray(files) || !language?.trim()) return res.status(400).json({ error: 'Required fields missing' });
         const user = await getUser(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
         const idx = user.codes.findIndex(c => c.id == Number(codeId));
         let resultCode: Code;
         if (idx !== -1) {
-            user.codes[idx] = { ...user.codes[idx], title, language, description, files, updatedAt: new Date().toISOString() };
+            user.codes[idx] = { ...user.codes[idx], title, language, description, files, isPublic: isPublic !== false, updatedAt: new Date().toISOString() };
             resultCode = user.codes[idx];
         } else {
-            const newCode: Code = { id: Date.now(), userid: userId, title, language, description, files, views: 0, likedBy: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+            const newCode: Code = { id: Date.now(), userid: userId, title, language, description, files, views: 0, likedBy: [], isPublic: isPublic !== false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
             user.codes.push(newCode);
             resultCode = newCode;
         }
-        await updateUser(userId, { codes: user.codes });
+        await updateUser(userId, { codes: user.codes }, false);
         res.status(201).json(resultCode);
     } catch (err) { res.status(500).json({ error: 'Update code failed' }); }
 });
@@ -238,40 +257,43 @@ app.delete('/api/codes/:codeId', authMiddleware, async (req: Request, res: Respo
         const idx = user.codes.findIndex(c => c.id == Number(req.params.codeId));
         if (idx === -1) return res.status(404).json({ error: 'Code not found' });
         user.codes.splice(idx, 1);
-        await updateUser(userId, { codes: user.codes });
+        await updateUser(userId, { codes: user.codes }, false);
         res.json({ message: 'Code deleted' });
     } catch (err) { res.status(500).json({ error: 'Delete code failed' }); }
 });
 
 app.get('/api/codes/:codeId', authMiddleware, async (req: Request, res: Response) => {
     try {
+        const userId = req.user!.userId;
+        const users = await getUsers(userId);
         const { codeId } = req.params;
-        const snapshot = await db.collection('users').get();
-        for (const doc of snapshot.docs) {
-            const userData = doc.data() as User;
+        for (const userData of users) {
             const codes = userData.codes || [];
             const code = codes.find(c => c.id == Number(codeId));
-            if (code) return res.json(code);
+            if (code) {
+                return res.json(code);
+            }
         }
-        res.status(404).json({ error: 'Code not found' });
+        res.status(404).json({ error: 'Code not found or private' });
     } catch (err) { res.status(500).json({ error: 'Get code failed' }); }
 });
 
 app.post('/api/codes/:codeId/like', authMiddleware, async (req: Request, res: Response) => {
     try {
         const userId = req.user!.userId;
-        const snapshot = await db.collection('users').get();
-        for (const doc of snapshot.docs) {
-            const userData = doc.data() as User;
+        const users = await getUsers(userId);
+        const { codeId } = req.params;
+        for (const userData of users) {
             const codes = userData.codes || [];
-            const idx = codes.findIndex(c => c.id == Number(req.params.codeId));
+            const idx = codes.findIndex(c => c.id == Number(codeId));
             if (idx !== -1) {
-                const likedBy = codes[idx].likedBy || [];
+                const code = codes[idx];
+                const likedBy = code.likedBy || [];
                 const already = likedBy.includes(userId);
                 if (already) likedBy.splice(likedBy.indexOf(userId), 1);
                 else likedBy.push(userId);
                 codes[idx].likedBy = likedBy;
-                await db.collection('users').doc(doc.id).update({ codes });
+                await updateUser(userData.id, { codes }, false);
                 return res.json({ success: true, code: codes[idx], liked: !already });
             }
         }
@@ -281,14 +303,15 @@ app.post('/api/codes/:codeId/like', authMiddleware, async (req: Request, res: Re
 
 app.post('/api/codes/:codeId/view', authMiddleware, async (req: Request, res: Response) => {
     try {
-        const snapshot = await db.collection('users').get();
-        for (const doc of snapshot.docs) {
-            const userData = doc.data() as User;
+        const userId = req.user!.userId;
+        const users = await getUsers(userId);
+        const { codeId } = req.params;
+        for (const userData of users) {
             const codes = userData.codes || [];
-            const idx = codes.findIndex(c => c.id == Number(req.params.codeId));
+            const idx = codes.findIndex(c => c.id == Number(codeId));
             if (idx !== -1) {
                 codes[idx].views = (codes[idx].views || 0) + 1;
-                await db.collection('users').doc(doc.id).update({ codes });
+                await updateUser(userData.id, { codes }, false);
                 return res.json({ success: true, views: codes[idx].views });
             }
         }
@@ -297,94 +320,7 @@ app.post('/api/codes/:codeId/view', authMiddleware, async (req: Request, res: Re
 });
 
 app.post('/api/execute', authMiddleware, async (req: Request, res: Response) => {
-    try {
-        const { language, files } = req.body;
-        
-        if (!language || !files || !Array.isArray(files)) {
-            return res.status(400).json({ error: 'Invalid request' });
-        }
-
-        const { execSync } = require('child_process');
-        const os = require('os');
-        const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'playground-'));
-        
-        let output = '';
-        let error = '';
-
-        try {
-            switch (language.toLowerCase()) {
-                case 'python': {
-                    const pythonFile = path.join(tempDir, 'script.py');
-                    const content = files[0]?.content || '';
-                    fs.writeFileSync(pythonFile, content);
-                    output = execSync(`python "${pythonFile}"`, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 });
-                    break;
-                }
-                case 'javascript': {
-                    const jsFile = path.join(tempDir, 'script.js');
-                    const content = files[0]?.content || '';
-                    fs.writeFileSync(jsFile, content);
-                    output = execSync(`node "${jsFile}"`, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 });
-                    break;
-                }
-                case 'php': {
-                    const phpFile = path.join(tempDir, 'script.php');
-                    const content = files[0]?.content || '';
-                    fs.writeFileSync(phpFile, content);
-                    output = execSync(`php "${phpFile}"`, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 });
-                    break;
-                }
-                case 'java': {
-                    const javaFile = path.join(tempDir, 'Main.java');
-                    let content = files[0]?.content || '';
-                    content = content.replace(/class\s+\w+/g, 'class Main');
-                    fs.writeFileSync(javaFile, content);
-                    execSync(`javac "${javaFile}"`, { cwd: tempDir, maxBuffer: 10 * 1024 * 1024 });
-                    output = execSync(`java -cp "${tempDir}" Main`, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 });
-                    break;
-                }
-                case 'cpp': {
-                    const cppFile = path.join(tempDir, 'program.cpp');
-                    const exeFile = path.join(tempDir, 'program');
-                    const content = files[0]?.content || '';
-                    fs.writeFileSync(cppFile, content);
-                    execSync(`g++ -o "${exeFile}" "${cppFile}"`, { maxBuffer: 10 * 1024 * 1024 });
-                    output = execSync(`"${exeFile}"`, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 });
-                    break;
-                }
-                case 'csharp': {
-                    const csFile = path.join(tempDir, 'Program.cs');
-                    const exeFile = path.join(tempDir, 'Program.exe');
-                    const content = files[0]?.content || '';
-                    fs.writeFileSync(csFile, content);
-                    execSync(`csc -out:"${exeFile}" "${csFile}"`, { maxBuffer: 10 * 1024 * 1024 });
-                    output = execSync(`"${exeFile}"`, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 });
-                    break;
-                }
-                case 'rust': {
-                    const rsFile = path.join(tempDir, 'main.rs');
-                    const exeFile = path.join(tempDir, 'main');
-                    const content = files[0]?.content || '';
-                    fs.writeFileSync(rsFile, content);
-                    execSync(`rustc -o "${exeFile}" "${rsFile}"`, { maxBuffer: 10 * 1024 * 1024 });
-                    output = execSync(`"${exeFile}"`, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 });
-                    break;
-                }
-                default:
-                    return res.status(400).json({ error: `Language '${language}' is not supported for execution` });
-            }
-        } catch (execError: any) {
-            error = execError.stderr?.toString() || execError.stdout?.toString() || execError.message || 'Execution failed';
-        }
-        fs.rmSync(tempDir, { recursive: true, force: true });
-        res.json({ 
-            success: !error,
-            output: output.trim() || (error ? '' : 'Program executed successfully with no output'),
-            error: error.trim() || ''
-        });
-    } catch (err: any) {
-        res.status(500).json({ error: err.message || 'Execution service error' });
-    }
+    res.status(500).json({ error: 'You can only run web code (HTML, CSS, and JavaScript)' });
 });
 
 app.get('/:name', (req: Request, res: Response) => {
