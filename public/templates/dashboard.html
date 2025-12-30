@@ -77,6 +77,37 @@
 
             <div id="notificationsScreen" class="appScreen"></div>
 
+            <div id="settingsScreen" class="appScreen">
+                <div style="display:flex;flex-direction:column;height:100%;gap:24px;padding-bottom:20px;">
+                    <div>
+                        <h2 style="font-size:20px;font-weight:700;margin-bottom:16px;color:var(--text-primary);">
+                            Settings</h2>
+                    </div>
+
+                    <div
+                        style="border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:20px;background:rgba(99,102,241,0.05);">
+                        <h3 style="font-size:16px;font-weight:600;margin-bottom:12px;color:var(--text-primary);">Profile
+                        </h3>
+                        <div style="display:flex;flex-direction:column;gap:12px;">
+                            <div>
+                                <button onclick="openProfileEditor()" class="primary-button">
+                                    <i class="fas fa-user-edit"></i>Edit Profile</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        style="border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:20px;background:rgba(231,76,60,0.05);">
+                        <h3 style="font-size:16px;font-weight:600;margin-bottom:12px;color:var(--danger);">
+                            Danger Zone</h3>
+                        <p style="font-size:14px;color:var(--text-secondary);margin-bottom:12px;">
+                            Once you delete your account, there is no going back.</p>
+                        <button id="deleteAccountBtn" class="primary-button red-back-btn"><i class="fas fa-trash"></i>
+                            Delete Account</button>
+                    </div>
+                </div>
+            </div>
+
             <div id="profileEditor" class="appScreen">
                 <div style="display:flex;flex-direction:column;height:100%;gap:16px;padding-bottom:20px;">
                     <div>
@@ -150,6 +181,7 @@
             <button class="menuItem hoverAnim" data-open-screen="leaders">Leaderboard</button>
             <button class="menuItem hoverAnim" data-open-screen="code">Code</button>
             <button class="menuItem hoverAnim" data-open-screen="notificationsScreen">Notifications</button>
+            <button class="menuItem hoverAnim" data-open-screen="settingsScreen">Settings</button>
         </nav>
 
         <div class="sideMenuItem" id="toggleDebug" style="padding: 15px 10px; font-size: 14px;">
@@ -202,11 +234,10 @@
         function handleLogout() {
             const modal = document.getElementById('logoutModal');
             modal.innerHTML = `
-                <div style="background:linear-gradient(180deg,#0b1220,#0f1724);padding:32px;border-radius:16px;text-align:center;max-width:320px;box-shadow:0 20px 60px rgba(0,0,0,0.8);border:1px solid rgba(255,255,255,0.08);">
-                    <h3 style="color:var(--text-primary);margin:0 0 8px 0;font-size:20px;">Log out?</h3>
-                    <p style="color:var(--text-secondary);margin:0 0 24px 0;font-size:14px;line-height:1.5;">
-                        Are you sure you want to log out?</p>
-                    <div style="display:flex;gap:10px;">
+                <div class="confirmation-dialog">
+                    <h3>Log out?</h3>
+                    <p>Are you sure you want to log out?</p>
+                    <div>
                         <button onclick="cancelLogout()" class="secondary-button"
                             style="flex:1;border-color:rgba(99,102,241,0.3);">
                             Cancel

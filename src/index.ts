@@ -136,7 +136,10 @@ app.post('/auth/login', async (req: Request, res: Response) => {
         if (!verifyPassword(password, account.data().passwordHash)) return res.status(401).json({ error: 'Invalid email or password' });
         const token = createToken(account.id, email);
         res.json({ token, user: { id: account.id, email } });
-    } catch (err) { res.status(500).json({ error: 'Login failed' }); }
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Login failed' });
+    }
 });
 
 app.get('/auth/me', authMiddleware, async (req: Request, res: Response) => {
@@ -269,7 +272,7 @@ app.get('/api/codes/:codeId', authMiddleware, async (req: Request, res: Response
         const { codeId } = req.params;
         for (const userData of users) {
             const codes = userData.codes || [];
-            const code = codes.find(c => c.id == Number(codeId));
+            const code = codes.find((c: Code) => c.id == Number(codeId));
             if (code) {
                 return res.json(code);
             }
@@ -285,7 +288,7 @@ app.post('/api/codes/:codeId/like', authMiddleware, async (req: Request, res: Re
         const { codeId } = req.params;
         for (const userData of users) {
             const codes = userData.codes || [];
-            const idx = codes.findIndex(c => c.id == Number(codeId));
+            const idx = codes.findIndex((c: Code) => c.id == Number(codeId));
             if (idx !== -1) {
                 const code = codes[idx];
                 const likedBy = code.likedBy || [];
@@ -308,7 +311,7 @@ app.post('/api/codes/:codeId/view', authMiddleware, async (req: Request, res: Re
         const { codeId } = req.params;
         for (const userData of users) {
             const codes = userData.codes || [];
-            const idx = codes.findIndex(c => c.id == Number(codeId));
+            const idx = codes.findIndex((c: Code) => c.id == Number(codeId));
             if (idx !== -1) {
                 codes[idx].views = (codes[idx].views || 0) + 1;
                 await updateUser(userData.id, { codes }, false);

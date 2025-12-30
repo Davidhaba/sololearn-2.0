@@ -551,6 +551,9 @@ function initializeEventListeners() {
     if (profileSaveBtn) profileSaveBtn.addEventListener('click', (e) => saveProfileChanges(e.target));
     if (profileCancelBtn) profileCancelBtn.addEventListener('click', cancelProfileEdit);
 
+    const deleteAccountBtn = document.getElementById('deleteAccountBtn');
+    if (deleteAccountBtn) deleteAccountBtn.addEventListener('click', deleteOrLogoutConfirm);
+
     document.querySelector('#code').querySelectorAll('.filterBtn').forEach(b => b.addEventListener('click', () => displayCodes(b.getAttribute('data-filter'))));
     const createCodeBtn = document.getElementById('createCodeBtn');
     if (createCodeBtn) createCodeBtn.addEventListener('click', () => openCodeEditor());
@@ -760,6 +763,7 @@ function changeScreen(screenId, isHidePanels = false) {
         'leaders': 1,
         'code': 2,
         'notificationsScreen': 3,
+        'settingsScreen': 4,
     }
     const navEl = document.querySelector('#sideMenu #sideMenuNav');
     if (screens[screenId] !== -1) {
@@ -776,7 +780,8 @@ function changeScreen(screenId, isHidePanels = false) {
         'code': 'Code',
         'userProfile': 'Profile',
         'notificationsScreen': 'Notifications',
-        'profileEditor': 'Profile Editor'
+        'profileEditor': 'Profile Editor',
+        'settingsScreen': 'Settings'
     };
     document.getElementById('droptopTitle').textContent = titles[screenId] || screenId;
 }
@@ -1439,6 +1444,90 @@ async function deleteCodeOnServer(codeid) {
     } catch (e) {
         console.error('deleteCodeOnServer error:', e.message);
         showNotification(`❌ Error: ${e.message}`);
+    }
+}
+
+function deleteOrLogoutConfirm() {
+    const modal = document.getElementById('logoutModal');
+    modal.innerHTML = `
+        <div class="confirmation-dialog big">
+            <h3 style="color:var(--danger);">Delete Account?</h3>
+            <p>To use a different account, log out. Deleting your account will permanently remove all your data.</p>
+            <p>Do you understand the consequences?</p>
+            <div>
+                <button onclick="cancelDeleteAccount()" class="secondary-button"
+                    style="flex:1;border-color:rgba(99,102,241,0.3);">
+                    Cancel
+                </button>
+                <button onclick="confirmLogout()" class="primary-button red-back-btn"
+                    style="flex:1;box-shadow:0 4px 15px rgba(231,76,60,0.3);">
+                    Just log out
+                </button>
+                <button onclick="deleteAccountConfirm()" class="primary-button red-back-btn"
+                    style="flex:1;box-shadow:0 4px 15px rgba(231,76,60,0.3);">
+                    Yes
+                </button>
+            </div>
+        </div>
+    `;
+    modal.style.display = 'flex';
+}
+
+async function deleteAccountConfirm() {
+    const modal = document.getElementById('logoutModal');
+    modal.innerHTML = `
+        <div class="confirmation-dialog">
+            <h3 style="color:var(--danger);">Are you sure?</h3>
+            <p>This action cannot be undone. All your data will be permanently deleted.</p>
+            <div>
+                <button onclick="cancelDeleteAccount()" class="secondary-button"
+                    style="flex:1;border-color:rgba(99,102,241,0.3);">
+                    Cancel
+                </button>
+                <button onclick="confirmDeleteAccount()" class="primary-button red-back-btn"
+                    style="flex:1;box-shadow:0 4px 15px rgba(231,76,60,0.3);">
+                    Delete
+                </button>
+            </div>
+        </div>
+    `;
+    modal.style.display = 'flex';
+}
+
+function cancelDeleteAccount() {
+    document.getElementById('logoutModal').style.display = 'none';
+}
+
+async function confirmDeleteAccount() {
+    const modal = document.getElementById('logoutModal');
+    const deleteBtn = document.getElementById('deleteAccountBtn');
+    if (deleteBtn) deleteBtn.disabled = true;
+
+    try {
+        const userId = AuthService.getStoredUser()?.id;
+        if (!userId) throw new Error('User ID not found');
+
+        const res = await fetch(`${Router.routers.apiUsers}/${userId}`, {
+            method: 'DELETE',
+            headers: getHeaders(true)
+        });
+
+        if (!res.ok) throw new Error('Failed to delete account');
+
+        modal.innerHTML = `<div style="background:linear-gradient(180deg,#0b1220,#0f1724);padding:14px;border-radius:16px;text-align:center;max-width:320px;box-shadow:0 20px 60px rgba(0,0,0,0.8);border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-size:48px; margin: 16px;">👋</div>
+            <p style="color:var(--text-secondary);margin:0;font-size:14px;">Account deleted. Goodbye!</p>
+        </div>`;
+
+        if (typeof AuthService !== 'undefined') AuthService.logout();
+        if (typeof Router !== 'undefined' && Router.routers?.login) {
+            setTimeout(() => Router.redirectTo(Router.routers.login), 200);
+        }
+    } catch (err) {
+        console.error('Delete account error:', err);
+        showNotification(`❌ Error: ${err.message}`);
+        modal.style.display = 'none';
+        if (deleteBtn) deleteBtn.disabled = false;
     }
 }
 
