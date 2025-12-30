@@ -816,8 +816,6 @@ async function loadProfileById(id = null) {
 function showUserProfile(user = null) {
     if (!user) return;
     const userScreen = document.getElementById('userProfile');
-    const currentUser = getAuthStoredUser();
-    const isCurrent = currentUser && currentUser.id && user.id && String(user.id) === String(currentUser.id);
     user = {
         name: user.name || 'Unknown',
         level: Number(user.level) || 0,
@@ -833,8 +831,6 @@ function showUserProfile(user = null) {
         </div>
         <h2 style="margin-top:16px;margin-bottom:4px;">${user.name}</h2>
         <p style="color: var(--text-secondary); margin: 0 0 12px 0;">Level ${user.level}</p>
-        ${(isCurrent ? `<button onclick="openProfileEditor()" class="primary-button" style="margin-top:4px;">Edit Profile</button>` : '')}
-        
         <div style="width: 100%; margin-top: 24px; background: rgba(99, 102, 241, 0.1); border-radius: 12px; padding: 15px;">
             <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 8px 0;">Level Progress</p>
             <div style="width: 100%; height: 8px; background: rgba(99, 102, 241, 0.2); border-radius: 10px; overflow: hidden;">
@@ -842,7 +838,6 @@ function showUserProfile(user = null) {
             </div>
             <p style="font-size: 12px; color: var(--text-secondary); margin: 8px 0 0 0;">${user.xp} / 5000 XP</p>
         </div>
-
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; width: 100%;">
             <div style="background: rgba(99, 102, 241, 0.1); border-radius: 12px; padding: 15px; text-align: center;">
                 <p style="font-size: 24px; margin: 0;">🔥 ${user.streak}</p>

@@ -79,21 +79,14 @@
 
             <div id="settingsScreen" class="appScreen">
                 <div style="display:flex;flex-direction:column;height:100%;gap:24px;padding-bottom:20px;">
-                    <div>
-                        <h2 style="font-size:20px;font-weight:700;margin-bottom:16px;color:var(--text-primary);">
-                            Settings</h2>
-                    </div>
-
                     <div
                         style="border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:20px;background:rgba(99,102,241,0.05);">
-                        <h3 style="font-size:16px;font-weight:600;margin-bottom:12px;color:var(--text-primary);">Profile
-                        </h3>
-                        <div style="display:flex;flex-direction:column;gap:12px;">
-                            <div>
-                                <button onclick="openProfileEditor()" class="primary-button">
-                                    <i class="fas fa-user-edit"></i>Edit Profile</button>
-                            </div>
-                        </div>
+                        <h3 style="font-size:16px;font-weight:600;margin-bottom:12px;color:var(--text-primary);">
+                            Profile</h3>
+                        <p style="font-size:14px;color:var(--text-secondary);margin-bottom:12px;">
+                            You can edit your profile.</p>
+                        <button onclick="openProfileEditor()" class="primary-button">
+                            <i class="fas fa-user-edit"></i>Edit Profile</button>
                     </div>
 
                     <div
@@ -102,8 +95,8 @@
                             Danger Zone</h3>
                         <p style="font-size:14px;color:var(--text-secondary);margin-bottom:12px;">
                             Once you delete your account, there is no going back.</p>
-                        <button id="deleteAccountBtn" class="primary-button red-back-btn"><i class="fas fa-trash"></i>
-                            Delete Account</button>
+                        <button id="deleteAccountBtn" class="primary-button red-back-btn">
+                            <i class="fas fa-trash"></i>Delete Account</button>
                     </div>
                 </div>
             </div>
