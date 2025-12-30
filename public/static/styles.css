@@ -898,6 +898,11 @@ input[type="checkbox"]:checked::after {
     --hoverAnimWidth: unset !important;
 }
 
+#sideMenu #sideMenuNav:has(.hoverAnim:nth-child(5):hover) {
+    --button-index: 4 !important;
+    --hoverAnimWidth: unset !important;
+}
+
 #sideMenu #sideMenuNav {
     --hoverAnimTop: calc(var(--button-index, 0) * 40px + 10px);
 }
