@@ -1,11 +1,11 @@
 const firebaseConfig = {
-  apiKey: "AIzaSyDf77lCIv3_gJcEt5PbkI0eV5Jm-NlvjBc",
-  authDomain: "sololearn-2-0.firebaseapp.com",
-  projectId: "sololearn-2-0",
-  storageBucket: "sololearn-2-0.firebasestorage.app",
-  messagingSenderId: "140191799026",
-  appId: "1:140191799026:web:a606ff0a712f3771cca26b",
-  measurementId: "G-0M6D4THRMF"
+    apiKey: "AIzaSyDf77lCIv3_gJcEt5PbkI0eV5Jm-NlvjBc",
+    authDomain: "sololearn-2-0.firebaseapp.com",
+    projectId: "sololearn-2-0",
+    storageBucket: "sololearn-2-0.firebasestorage.app",
+    messagingSenderId: "140191799026",
+    appId: "1:140191799026:web:a606ff0a712f3771cca26b",
+    measurementId: "G-0M6D4THRMF"
 };
 
 if (typeof firebase === 'undefined') {
@@ -39,7 +39,7 @@ async function handleOAuthRedirect() {
     try {
         const result = await auth.getRedirectResult();
         if (result.user) {
-            await handleOAuthSuccess(result.user, result.credential);
+            await handleOAuthSuccess(result.user);
         }
     } catch (error) {
         console.error('OAuth redirect error:', error);
@@ -47,19 +47,27 @@ async function handleOAuthRedirect() {
     }
 }
 
-async function handleOAuthSuccess(user, credential) {
+async function handleOAuthSuccess(user) {
     try {
         const token = await user.getIdToken();
-        
+        let email = user.email || null;
+        let name = user.displayName || null;
+        let photo = user.photoURL || null;
+        const providerData = user.providerData[0];
+        if (providerData) {
+            if (!email) email = providerData.email || null;
+            if (!name) name = providerData.displayName || null;
+            if (!photo) photo = providerData.photoURL || null;
+        }
         const response = await fetch('/auth/oauth', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 idToken: token,
-                provider: user.providerData[0]?.providerId || 'unknown',
-                name: user.displayName || user.email.split('@')[0],
-                email: user.email,
-                photo: user.photoURL || ''
+                provider: providerData?.providerId || 'unknown',
+                name: name || email.split('@')[0] || null,
+                email: email,
+                photo: photo || null
             })
         });
 
@@ -82,10 +90,10 @@ async function handleOAuthSuccess(user, credential) {
 }
 
 Object.assign(AuthService, {
-    loginWithGoogle: async function() {
+    loginWithGoogle: async function () {
         try {
             const result = await auth.signInWithPopup(GoogleAuthProvider);
-            await handleOAuthSuccess(result.user, result.credential);
+            await handleOAuthSuccess(result.user);
         } catch (error) {
             if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
                 showMessage(`❌ Google login failed: ${error.message}`, 'error');
@@ -94,10 +102,10 @@ Object.assign(AuthService, {
         }
     },
 
-    loginWithFacebook: async function() {
+    loginWithFacebook: async function () {
         try {
             const result = await auth.signInWithPopup(FacebookAuthProvider);
-            await handleOAuthSuccess(result.user, result.credential);
+            await handleOAuthSuccess(result.user);
         } catch (error) {
             if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
                 showMessage(`❌ Facebook login failed: ${error.message}`, 'error');
@@ -106,10 +114,10 @@ Object.assign(AuthService, {
         }
     },
 
-    loginWithGithub: async function() {
+    loginWithGithub: async function () {
         try {
             const result = await auth.signInWithPopup(GithubAuthProvider);
-            await handleOAuthSuccess(result.user, result.credential);
+            await handleOAuthSuccess(result.user);
         } catch (error) {
             if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
                 showMessage(`❌ GitHub login failed: ${error.message}`, 'error');
@@ -118,10 +126,10 @@ Object.assign(AuthService, {
         }
     },
 
-    loginWithMicrosoft: async function() {
+    loginWithMicrosoft: async function () {
         try {
             const result = await auth.signInWithPopup(MicrosoftAuthProvider);
-            await handleOAuthSuccess(result.user, result.credential);
+            await handleOAuthSuccess(result.user);
         } catch (error) {
             if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
                 showMessage(`❌ Microsoft login failed: ${error.message}`, 'error');

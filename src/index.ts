@@ -136,6 +136,10 @@ app.post('/auth/login', async (req: Request, res: Response) => {
         if (!verifyPassword(password, account.data().passwordHash)) return res.status(401).json({ error: 'Invalid email or password' });
         const token = createToken(account.id, email);
         res.json({ token, user: { id: account.id, email } });
+        sendNotification(account.id, {
+            title: 'Welcome back.',
+            text: `Welcome there! You've signed in via email. Keep coding!`
+        });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Login failed' });
@@ -200,6 +204,11 @@ app.post('/auth/oauth', async (req: Request, res: Response) => {
             if (!existingAccount.provider) {
                 await db.collection('accounts').doc(accountId).update({ provider });
             }
+
+            sendNotification(accountId, {
+                title: 'Welcome back.',
+                text: `Welcome ${userDoc.data()?.name || 'there'}! You've signed in via ${provider}. Keep coding!`
+            });
         }
 
         const token = createToken(accountId, email);

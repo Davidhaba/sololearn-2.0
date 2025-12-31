@@ -260,14 +260,14 @@ async function initApp() {
     } catch (e) {
         console.warn('Failed to get current user:', e);
     }
+    initializeEventListeners();
+    updateMenuAuthButton();
+    changeScreen('main');
     try {
         await updateUsers();
     } catch (e) {
         console.warn('Failed to update users:', e);
     }
-    initializeEventListeners();
-    updateMenuAuthButton();
-    changeScreen('main');
 }
 
 if (document.readyState === 'loading') {
@@ -337,6 +337,7 @@ async function renderNotifications(user = null) {
     `;
     const list = document.createElement('div');
     list.style.cssText = 'display: grid; gap: 12px;';
+    notes.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     notes.forEach((n, idx) => {
         const it = document.createElement('div');
         it.className = 'notifItem';
