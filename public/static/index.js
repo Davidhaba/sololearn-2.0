@@ -408,7 +408,8 @@ function markNotificationRead(idx) {
     if (!notification) return;
 
     notification.read = true;
-    updateNotifEl(user);
+    AppState.currentUser = user;
+    renderNotifications(user);
     persistNotificationOperation('mark_read', { notificationId: notification.id }).catch(() => { });
 }
 
@@ -420,7 +421,8 @@ function markAllNotificationsRead() {
         .map(n => n.id);
     if (unreadIds.length === 0) return;
     user.notifications = user.notifications.map(n => ({ ...n, read: true }));
-    updateNotifEl(user);
+    AppState.currentUser = user;
+    renderNotifications(user);
     persistNotificationOperation('mark_all_read', { notificationIds: unreadIds }).catch(() => { });
 }
 
@@ -430,7 +432,8 @@ function clearReadNotifications() {
     const readNotifications = user.notifications.filter(n => n.read);
     const readIds = readNotifications.map(n => n.id);
     user.notifications = user.notifications.filter(n => !n.read);
-    updateNotifEl(user);
+    AppState.currentUser = user;
+    renderNotifications(user);
     persistNotificationOperation('clear_all', { notificationIds: readIds }).catch(() => { });
 }
 
@@ -662,7 +665,7 @@ async function saveProfileChanges(btn) {
     }
 
     try {
-        const res = await fetch(Router.routers.authMe, {
+        const res = await fetch(Router.routers.apiUser, {
             method: 'PUT', headers: getHeaders(true),
             body: JSON.stringify({ name, photo })
         });
@@ -1499,10 +1502,11 @@ async function confirmDeleteAccount() {
     if (deleteBtn) deleteBtn.disabled = true;
 
     try {
-        const userId = AuthService.getStoredUser()?.id;
-        if (!userId) throw new Error('User ID not found');
+        if (typeof AuthService === 'undefined' || !AuthService.isAuthenticated()) {
+            throw new Error('You are not authenticated.');
+        }
 
-        const res = await fetch(`${Router.routers.apiUsers}/${userId}`, {
+        const res = await fetch(Router.routers.apiUser, {
             method: 'DELETE',
             headers: getHeaders(true)
         });
@@ -1515,8 +1519,8 @@ async function confirmDeleteAccount() {
         </div>`;
 
         if (typeof AuthService !== 'undefined') AuthService.logout();
-        if (typeof Router !== 'undefined' && Router.routers?.login) {
-            setTimeout(() => Router.redirectTo(Router.routers.login), 200);
+        if (typeof Router !== 'undefined' && Router.routers?.auth) {
+            setTimeout(() => Router.redirectTo(Router.routers.auth), 100);
         }
     } catch (err) {
         console.error('Delete account error:', err);

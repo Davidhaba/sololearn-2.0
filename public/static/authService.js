@@ -57,7 +57,7 @@ const AuthService = (() => {
             if (!token) return null;
 
             try {
-                const res = await fetch(Router.routers.authMe, {
+                const res = await fetch(Router.routers.apiUser, {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${token}`,

@@ -1,6 +1,7 @@
 const Router = (() => {
     const apiBase = `/api`;
     const auth = `/auth`;
+    const apiUsers = `${apiBase}/users`;
     const routers = {
         pageNotFound: '/pagenotfound',
         apiBase,
@@ -10,8 +11,8 @@ const Router = (() => {
         playground: '/playground',
         authRegister: `${auth}/register`,
         authLogin: `${auth}/login`,
-        authMe: `${auth}/me`,
-        apiUsers: `${apiBase}/users`,
+        apiUsers,
+        apiUser: `${apiUsers}/user`,
         authNotifications: `${auth}/notifications`,
         apiCodes: `${apiBase}/codes`,
     };

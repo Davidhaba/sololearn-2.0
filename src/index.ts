@@ -142,7 +142,93 @@ app.post('/auth/login', async (req: Request, res: Response) => {
     }
 });
 
-app.get('/auth/me', authMiddleware, async (req: Request, res: Response) => {
+app.post('/auth/oauth', async (req: Request, res: Response) => {
+    try {
+        const { idToken, provider, name, email, photo } = req.body;
+        if (!idToken || !email) return res.status(400).json({ error: 'Invalid OAuth request' });
+
+        let decodedToken: any;
+        try {
+            decodedToken = await admin.auth().verifyIdToken(idToken);
+        } catch (err) {
+            return res.status(401).json({ error: 'Invalid or expired token' });
+        }
+
+        const accountSnapshot = await db.collection('accounts').where('email', '==', email).get();
+        let accountId = '';
+
+        if (accountSnapshot.empty) {
+            const accountRef = await db.collection('accounts').add({
+                email,
+                passwordHash: null,
+                provider,
+                notifications: []
+            });
+            accountId = accountRef.id;
+
+            await db.collection('users').doc(accountId).set({
+                id: accountId,
+                name: name || email.split('@')[0],
+                level: 1,
+                xp: 0,
+                streak: 0,
+                achievements: [],
+                photo: photo || '',
+                codes: [],
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            });
+
+            sendNotification(accountId, {
+                title: 'Welcome to Sololearn 2.0!',
+                text: `Welcome ${name || 'there'}! You've signed in via ${provider}. Start coding!`
+            });
+        } else {
+            accountId = accountSnapshot.docs[0].id;
+            const existingAccount = accountSnapshot.docs[0].data();
+
+            const userDoc = await db.collection('users').doc(accountId).get();
+            if (userDoc.exists) {
+                const updates: any = {};
+                if (photo && !userDoc.data().photo) updates.photo = photo;
+                if (Object.keys(updates).length > 0) {
+                    updates.updatedAt = new Date().toISOString();
+                    await db.collection('users').doc(accountId).update(updates);
+                }
+            }
+
+            if (!existingAccount.provider) {
+                await db.collection('accounts').doc(accountId).update({ provider });
+            }
+        }
+
+        const token = createToken(accountId, email);
+        const user = await getUser(accountId);
+
+        res.status(200).json({
+            token,
+            user: {
+                id: accountId,
+                email,
+                name: user?.name || name,
+                photo: user?.photo || photo
+            }
+        });
+    } catch (err) {
+        console.error('OAuth error:', err);
+        res.status(500).json({ error: 'OAuth login failed' });
+    }
+});
+
+app.get('/api/users', authMiddleware, async (req: Request, res: Response) => {
+    try {
+        const userId = req.user!.userId;
+        const users = await getUsers(userId);
+        res.json(users);
+    } catch (err) { res.status(500).json({ error: 'Failed to get users' }); }
+});
+
+app.get('/api/users/user', authMiddleware, async (req: Request, res: Response) => {
     try {
         const userId = req.user!.userId;
         const user = await getUser(userId);
@@ -152,18 +238,27 @@ app.get('/auth/me', authMiddleware, async (req: Request, res: Response) => {
     } catch (err) { res.status(500).json({ error: 'Failed to get user' }); }
 });
 
-app.put('/auth/me', authMiddleware, async (req: Request, res: Response) => {
+app.put('/api/users/user', authMiddleware, async (req: Request, res: Response) => {
     try {
         const userId = req.user!.userId;
         const { name, photo } = req.body;
         if (!name && !photo) return res.status(400).json({ error: 'Provide name or photo' });
         const updates: Partial<User> = {};
-        if (name) updates.name = name.trim() || 'Unknown';
-        if (photo) updates.photo = photo.trim() || '';
+        if (name.trim()) updates.name = name.trim();
+        updates.photo = photo.trim() || '';
         await updateUser(userId, updates);
         const user = await getUser(userId);
         res.json({ user });
     } catch (err) { res.status(500).json({ error: 'Update failed' }); }
+});
+
+app.delete('/api/users/user', authMiddleware, async (req: Request, res: Response) => {
+    try {
+        const userId = req.user!.userId;
+        await db.collection('users').doc(userId).delete();
+        await db.collection('accounts').doc(userId).delete();
+        res.json({ message: 'User deleted' });
+    } catch (err) { res.status(500).json({ error: 'Delete failed' }); }
 });
 
 app.put('/auth/notifications', authMiddleware, async (req: Request, res: Response) => {
@@ -187,32 +282,6 @@ app.put('/auth/notifications', authMiddleware, async (req: Request, res: Respons
         const user = await getUser(userId);
         res.json({ user: { ...user, notifications } });
     } catch (err) { res.status(500).json({ error: 'Notification update failed' }); }
-});
-
-app.get('/api/users', authMiddleware, async (req: Request, res: Response) => {
-    try {
-        const userId = req.user!.userId;
-        const users = await getUsers(userId);
-        res.json(users);
-    } catch (err) { res.status(500).json({ error: 'Failed to get users' }); }
-});
-
-app.put('/api/users/:userId', authMiddleware, async (req: Request, res: Response) => {
-    try {
-        const { userId } = req.params;
-        const updates = req.body;
-        await updateUser(userId, updates);
-        const user = await getUser(userId);
-        res.json(user);
-    } catch (err) { res.status(500).json({ error: 'Update failed' }); }
-});
-
-app.delete('/api/users/:userId', authMiddleware, async (req: Request, res: Response) => {
-    try {
-        await db.collection('users').doc(req.params.userId).delete();
-        await db.collection('accounts').doc(req.params.userId).delete();
-        res.json({ message: 'User deleted' });
-    } catch (err) { res.status(500).json({ error: 'Delete failed' }); }
 });
 
 app.post('/api/codes', authMiddleware, async (req: Request, res: Response) => {
