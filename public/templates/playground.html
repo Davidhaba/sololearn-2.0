@@ -73,6 +73,7 @@
             color: white;
             flex-shrink: 0;
             overflow: hidden;
+            cursor: pointer;
         }
 
         .creator-avatar img {
@@ -896,16 +897,10 @@
                     method: 'GET',
                     headers: headers
                 });
-                try {
-                    fetch(`${Router.routers.apiCodes}/${codeid}/view`, {
-                        method: 'POST',
-                        headers: headers
-                    });
-                } catch { }
                 const data = await response.json();
-                if (!response.ok) {
-                    if (data.error.trim().toLowerCase() === 'code not found') {
-                        alert('Code not found.');
+                if (!response.ok || data.error) {
+                    if (data.error.trim().toLowerCase().includes('code not found')) {
+                        alert(data.error);
                         Router.redirectTo(Router.routers.playground + '/web');
                         return null;
                     }
@@ -932,7 +927,12 @@
                 const nameDisplay = document.getElementById('creatorNameDisplay');
                 if (nameDisplay) nameDisplay.textContent = creator.name || 'Unknown';
                 const avatar = document.getElementById('creatorAvatar');
-                if (avatar) avatar.innerHTML = createUserAvatar(creator.photo, creator.name);
+                if (avatar) {
+                    avatar.innerHTML = createUserAvatar(creator.photo, creator.name);
+                    avatar.onclick = () => {
+                        Router.redirectTo(Router.routers.profile+'/'+creator.id);
+                    };
+                }
                 creatorInfoElement.style.display = 'flex';
                 likesContainer.style.display = 'flex';
             } else {
@@ -1282,22 +1282,10 @@
             document.getElementById('editModalSave').addEventListener('click', saveTitle);
             document.getElementById('editModalCancel').addEventListener('click', closeEditModal);
 
-            document.getElementById('editModal').addEventListener('click', function (e) {
-                if (e.target === this) {
-                    closeEditModal();
-                }
-            });
-
-            document.getElementById('editModalTitle').addEventListener('keydown', function (e) {
+            document.getElementById('editModal').addEventListener('keydown', function (e) {
                 if (e.key === 'Enter') {
                     saveTitle();
                 } else if (e.key === 'Escape') {
-                    closeEditModal();
-                }
-            });
-
-            document.getElementById('editModalDescription').addEventListener('keydown', function (e) {
-                if (e.key === 'Escape') {
                     closeEditModal();
                 }
             });

@@ -113,9 +113,19 @@
                     <div>
                         <label
                             style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">
-                            Photo URL (optional)</label>
-                        <input type="text" id="profileEditorPhoto" placeholder="https://..."
-                            style="width:100%;padding:12px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);border-radius:8px;color:var(--text-primary);">
+                            Photo</label>
+                        <div
+                            style="width: 100px; height: 100px; border-radius: 50%; overflow: hidden; position: relative; border: 1px solid rgba(99,102,241,0.2);">
+                            <img alt="Avatar" id="profileEditorPhoto"
+                                style="width: 100%; height: 100%; object-fit: cover;">
+                        </div>
+                        <input type="file" id="profileEditorPhotoInput" accept="image/*" style="opacity:0;width:0;" />
+                        <div style="display:flex;align-items:center;gap:12px;">
+                            <button id="selectImageBtn" type="button" class="primary-button"
+                                style="padding:8px 12px;">Select image</button>
+                            <div id="profileImageSizeInfo" style="font-size:13px;color:var(--text-secondary);">Max size:
+                                5 MB</div>
+                        </div>
                     </div>
 
                     <div style="display:flex;gap:12px;margin-top:auto;">
@@ -143,7 +153,7 @@
             </button>
             <button class="downButton" id="profileBtn" data-screen="userProfile" data-open-screen="userProfile"
                 title="Profile" style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-                <img id="profileImage" src="" alt="Photo"
+                <img id="profileImage"
                     style="display: none; width: 20px; height: 20px; border-radius: 50%; object-fit: cover;">
                 <i class="fas fa-user" id="profileIcon" style="font-size: 20px;"></i>
                 <div class="text-danger" id="profileName">
@@ -158,7 +168,7 @@
             style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;">
             <div class="hoverAnim" id="sideMenuProfile" role="button" tabindex="0">
                 <div style="width:32px;height:32px;border-radius:50%;overflow:hidden;flex:0 0 32px;">
-                    <img id="sideMenuAvatar" src="" alt="avatar"
+                    <img id="sideMenuAvatar" alt="avatar"
                         style="width:100%;height:100%;object-fit:cover;display:block;">
                 </div>
                 <div>
@@ -194,10 +204,10 @@
     </div>
 
     <div id="consoleModal"
-        style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1200;align-items:center;justify-content:center;padding:18px;">
+        style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1200;align-items:center;justify-content:center;">
         <div
-            style="background:linear-gradient(180deg,#0b1220,#0f1724);padding:18px;border-radius:12px;width:100%;max-width:880px;max-height:80vh;overflow:auto;border:1px solid rgba(255,255,255,0.06);">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;">
+            style="display:flex;flex-direction:column;position:relative;background:linear-gradient(180deg,#0b1220,#0f1724);border-radius:12px;width:100%;max-width:880px;height:100%;max-height:80vh;overflow:auto;border:1px solid rgba(255,255,255,0.06);box-sizing:border-box;">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 18px;">
                 <h3 style="margin:0;color:var(--text-primary);font-size:16px;">Console</h3>
                 <div style="display:flex;gap:8px;align-items:center;">
                     <button id="clearConsoleBtn" class="secondary-button"
@@ -207,7 +217,7 @@
                 </div>
             </div>
             <div id="consoleMessages"
-                style="background:rgba(255,255,255,0.02);border-radius:8px;padding:12px;font-family:monospace;font-size:13px;color:var(--text-primary);overflow:auto;max-height:62vh;">
+                style="flex:1;background:rgba(255,255,255,0.02);padding:12px;font-family:monospace;font-size:15px;color:var(--text-primary);overflow:auto;box-sizing:border-box;">
                 <div style="color:var(--text-secondary);">No messages yet.</div>
             </div>
         </div>
@@ -228,16 +238,16 @@
             const modal = document.getElementById('logoutModal');
             modal.innerHTML = `
                 <div class="confirmation-dialog">
-                    <h3>Log out?</h3>
-                    <p>Are you sure you want to log out?</p>
+                    <p class="title">Log out?</p>
+                    <p class="info">Are you sure you want to log out?</p>
                     <div>
                         <button onclick="cancelLogout()" class="secondary-button"
-                            style="flex:1;border-color:rgba(99,102,241,0.3);">
-                            Cancel
+                            style="flex:1;border-color:rgba(99,102,241,0.3);text-wrap:nowrap;">
+                            No, cancel
                         </button>
                         <button onclick="confirmLogout()" class="primary-button red-back-btn"
-                            style="flex:1;box-shadow:0 4px 15px rgba(231,76,60,0.3);">
-                            Yes
+                            style="flex:1;box-shadow:0 4px 15px rgba(231,76,60,0.3);text-wrap:nowrap;">
+                            Yes, log out
                         </button>
                     </div>
                 </div>
@@ -248,10 +258,12 @@
 
         function confirmLogout() {
             document.querySelector('#logoutModal').innerHTML = `<div style="background:linear-gradient(180deg,#0b1220,#0f1724);padding:14px;border-radius:16px;text-align:center;max-width:320px;box-shadow:0 20px 60px rgba(0,0,0,0.8);border:1px solid rgba(255,255,255,0.08);">
-                <div onClick="cancelLogout()" style="cursor:pointer; font-size:14px; color: white; float: right; line-height: 1;">X</div><div style="font-size:48px; margin: 16px;">👋</div>
+                <div onClick="cancelLogout()" style="cursor:pointer; font-size:14px; color: white; float: right; line-height: 1;">X</div><div style="font-size:28px; margin: 16px;">Logging out...</div>
             </div>`;
-            if (typeof AuthService !== 'undefined') AuthService.logout();
-            if (typeof Router !== 'undefined' && Router.routers?.login) Router.redirectTo(Router.routers.login);
+            if (typeof AuthService !== 'undefined') {
+                AuthService.logout();
+                if (typeof Router !== 'undefined' && Router.routers?.login) Router.redirectTo(Router.routers.login);
+            }
         }
 
         function cancelLogout() {
