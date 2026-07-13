@@ -72,7 +72,7 @@ async function handleOAuthSuccess(user) {
         });
 
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'OAuth login failed');
+        if (!response.ok || data.error) throw new Error(data.error || 'OAuth login failed');
 
         localStorage.setItem('authToken', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
@@ -81,6 +81,8 @@ async function handleOAuthSuccess(user) {
         setTimeout(() => {
             if (typeof Router !== 'undefined' && Router.routers?.dashboard) {
                 Router.redirectTo(Router.routers.dashboard);
+            } else {
+                showMessage('Redirect failed. Please try reloading this page.', 'error');
             }
         }, 100);
     } catch (err) {
@@ -98,7 +100,7 @@ Object.assign(AuthService, {
             if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
                 showMessage(`❌ Google login failed: ${error.message}`, 'error');
             }
-            console.error('Google login error:', error);
+            console.error('Google login error:', error.message);
         }
     },
 
@@ -110,7 +112,7 @@ Object.assign(AuthService, {
             if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
                 showMessage(`❌ Facebook login failed: ${error.message}`, 'error');
             }
-            console.error('Facebook login error:', error);
+            console.error('Facebook login error:', error.message);
         }
     },
 
@@ -122,7 +124,7 @@ Object.assign(AuthService, {
             if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
                 showMessage(`❌ GitHub login failed: ${error.message}`, 'error');
             }
-            console.error('GitHub login error:', error);
+            console.error('GitHub login error:', error.message);
         }
     },
 
@@ -134,7 +136,7 @@ Object.assign(AuthService, {
             if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
                 showMessage(`❌ Microsoft login failed: ${error.message}`, 'error');
             }
-            console.error('Microsoft login error:', error);
+            console.error('Microsoft login error:', error.message);
         }
     }
 });

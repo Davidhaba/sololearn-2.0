@@ -189,12 +189,22 @@ input[type="checkbox"]:checked::after {
 
 .primary-button[disabled],
 .secondary-button[disabled] {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
+    transform: scale(1);
+}
+
+.primary-button[disabled] {
+    background: var(--primary);
+}
+
+.secondary-button[disabled] {
+    background: transparent;
 }
 
 .red-back-btn {
     background: #e73535;
+    box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
 }
 
 .red-back-btn:hover {
@@ -202,7 +212,24 @@ input[type="checkbox"]:checked::after {
 }
 
 .red-back-btn[disabled] {
+    opacity: 0.5;
     background: #e73535;
+    box-shadow: 0 0 0 transparent;
+}
+
+.green-back-btn {
+    background: #2fa125;
+    box-shadow: 0 4px 15px rgba(94, 231, 60, 0.3);
+}
+
+.green-back-btn:hover {
+    background: #3ec032;
+}
+
+.green-back-btn[disabled] {
+    opacity: 0.5;
+    background: #2fa125;
+    box-shadow: 0 0 0 transparent;
 }
 
 #droptopMenu {
@@ -965,7 +992,7 @@ input[type="checkbox"]:checked::after {
 
 .confirmation-dialog {
     background: linear-gradient(180deg, #0b1220, #0f1724);
-    padding: 32px;
+    padding: 20px;
     border-radius: 16px;
     text-align: center;
     max-width: 320px;
@@ -977,13 +1004,14 @@ input[type="checkbox"]:checked::after {
     max-width: 420px;
 }
 
-.confirmation-dialog>h3 {
+.confirmation-dialog .title {
     color: var(--text-primary);
     margin: 0 0 8px 0;
     font-size: 20px;
+    font-weight: bold;
 }
 
-.confirmation-dialog>p {
+.confirmation-dialog .info {
     color: var(--text-secondary);
     margin: 0 0 24px 0;
     font-size: 14px;

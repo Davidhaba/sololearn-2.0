@@ -2,12 +2,13 @@ const Router = (() => {
     const apiBase = `/api`;
     const auth = `/auth`;
     const apiUsers = `${apiBase}/users`;
+    const dashboard = '/dashboard';
     const routers = {
         pageNotFound: '/pagenotfound',
         apiBase,
         auth,
+        dashboard,
         login: `${auth}#login`,
-        dashboard: '/dashboard',
         playground: '/playground',
         authRegister: `${auth}/register`,
         authLogin: `${auth}/login`,
@@ -15,6 +16,7 @@ const Router = (() => {
         apiUser: `${apiUsers}/user`,
         authNotifications: `${auth}/notifications`,
         apiCodes: `${apiBase}/codes`,
+        profile: `${dashboard}/profile`,
     };
     const redirectTo = (page) => {
         window.location.href = page;

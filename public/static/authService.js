@@ -11,10 +11,9 @@ const AuthService = (() => {
             if (!res.ok) throw new Error(data.error);
             try {
                 localStorage.setItem('authToken', data.token);
-                localStorage.setItem('user', JSON.stringify(data.user));
             } catch { }
             authToken = data.token;
-            currentUser = data.user;
+            this.setCurrentUser(data.user);
             return data;
         },
 
@@ -28,34 +27,34 @@ const AuthService = (() => {
             if (!res.ok) throw new Error(data.error);
             try {
                 localStorage.setItem('authToken', data.token);
-                localStorage.setItem('user', JSON.stringify(data.user));
             } catch { }
             authToken = data.token;
-            currentUser = data.user;
+            this.setCurrentUser(data.user);
             return data;
         },
 
         logout: function () {
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('user');
+            try {
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('user');
+            } catch (err) { }
             authToken = null;
             currentUser = null;
         },
 
         getToken: function () {
-            let token;
-            try {
-                token = localStorage.getItem('authToken') || authToken;
-            } catch {
-                token = authToken;
+            if (!authToken) {
+                try {
+                    const token = localStorage.getItem('authToken') || null;
+                    if (token) authToken = token;
+                } catch (err) { }
             }
-            return token || null;
+            return authToken || null;
         },
 
         getCurrentUser: async function () {
             const token = this.getToken();
             if (!token) return null;
-
             try {
                 const res = await fetch(Router.routers.apiUser, {
                     method: 'GET',
@@ -65,19 +64,17 @@ const AuthService = (() => {
                     }
                 });
                 const data = await res.json();
-                if (!res.ok || data.error) {
+                if (!res.ok) {
+                    throw new Error('Failed to fetch user');
+                } else if (data?.error) {
                     localStorage.removeItem('authToken');
                     localStorage.removeItem('user');
                     authToken = null;
                     currentUser = null;
-                    throw new Error(data.error || 'Failed to fetch user');
-                } else {
-                    const userObj = data && data.user;
-                    try {
-                        localStorage.setItem('user', JSON.stringify(userObj));
-                    } catch { }
-                    currentUser = userObj;
-                    return userObj;
+                    throw new Error(data.error);
+                } else if (data?.user) {
+                    this.setCurrentUser(data.user);
+                    return currentUser;
                 }
             } catch (e) {
                 console.error('getCurrentUser error:', e);
@@ -113,13 +110,27 @@ const AuthService = (() => {
         },
 
         getStoredUser: function () {
-            let user;
-            try {
-                user = JSON.parse(localStorage.getItem('user')) || currentUser;
-            } catch {
-                user = currentUser;
+            if (!currentUser) {
+                try {
+                    const user = JSON.parse(localStorage.getItem('user')) || null;
+                    if (user) {
+                        currentUser = user;
+                    }
+                } catch { }
             }
-            return user || null;
+            return currentUser || null;
+        },
+
+        setCurrentUser: function (user = null) {
+            const oldUser = currentUser;
+            currentUser = user;
+            try {
+                localStorage.setItem('user', JSON.stringify(user));
+            } catch { }
+            if (oldUser?.id && typeof AppState !== 'undefined' && Array.isArray(AppState?.users)) {
+                const i = AppState.users.findIndex(u => u && u.id && String(u.id) === String(oldUser.id));
+                if (i !== -1) AppState.users[i] = user;
+            }
         }
     };
 })();

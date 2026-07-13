@@ -1,10 +1,48 @@
 const AppState = {
     currentScreen: 'main',
     users: null,
-    currentUser: null,
     notifications: [],
-    consoleMessages: []
+    consoleMessages: [],
+    lastUpdateUsers: 0
 };
+
+const MAX_PHOTO_SIZE = 1 * 1024 * 1024;
+
+function formatBytes(bytes) {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+    return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function isPhotoTooLarge(fileOrData) {
+    if (fileOrData instanceof File) {
+        return fileOrData.size > MAX_PHOTO_SIZE;
+    }
+    return typeof fileOrData === 'string' && fileOrData.length > MAX_PHOTO_SIZE;
+}
+
+function updatePhotoValidation(fileOrData) {
+    const info = document.getElementById('profileImageSizeInfo');
+    const saveBtn = document.getElementById('profileSaveBtn');
+    if (!info) return;
+    if (!fileOrData) {
+        info.textContent = `max image size: ${formatBytes(MAX_PHOTO_SIZE)}`;
+        info.style.color = 'var(--text-secondary)';
+        if (saveBtn) saveBtn.disabled = false;
+        return;
+    }
+    const size = (fileOrData instanceof File) ? fileOrData.size : (typeof fileOrData === 'string' ? fileOrData.length : 0);
+    const fileSizeText = formatBytes(size);
+    if (isPhotoTooLarge(fileOrData)) {
+        info.textContent = `Selected: ${fileSizeText} — too large (max ${formatBytes(MAX_PHOTO_SIZE)})`;
+        info.style.color = 'var(--danger)';
+        if (saveBtn) saveBtn.disabled = true;
+    } else {
+        info.textContent = `Selected: ${fileSizeText} (max ${formatBytes(MAX_PHOTO_SIZE)})`;
+        info.style.color = 'var(--text-secondary)';
+        if (saveBtn) saveBtn.disabled = false;
+    }
+}
 
 function getToken() {
     return (typeof AuthService !== 'undefined') ? AuthService.getToken() || null : null;
@@ -22,10 +60,22 @@ function getHeaders(withToken = true) {
 async function updateUsers() {
     if (typeof AuthService !== 'undefined') {
         const allUsers = await AuthService.getAllUsers();
-        const currentUser = await AuthService.getCurrentUser();
         if (allUsers && Array.isArray(allUsers) && allUsers.length) AppState.users = allUsers;
-        if (currentUser && currentUser.id) AppState.currentUser = currentUser;
+        const currentUser = await AuthService.getCurrentUser();
+        if (currentUser && currentUser.id) {
+            updateProfileImage(currentUser);
+        }
     }
+}
+
+async function checkForUpdateUsers() {
+    const now = Date.now();
+    if (typeof AppState.lastUpdateUsers === "number" && now - AppState.lastUpdateUsers >= 60000) {
+        await updateUsers();
+        AppState.lastUpdateUsers = now;
+        return true;
+    }
+    return false;
 }
 
 (function captureConsole() {
@@ -33,16 +83,17 @@ async function updateUsers() {
     const levels = ['log', 'info', 'warn', 'error', 'debug'];
     levels.forEach(level => {
         const orig = console[level] || console.log;
-        console[level] = function (...args) {
+        console[level] = function (...arguments) {
             try {
-                const text = args.map(a => {
+                const args = arguments.map(a => {
                     try { return (typeof a === 'object') ? JSON.stringify(a) : String(a); } catch { return String(a); }
-                }).join(' ');
+                });
                 AppState.consoleMessages = AppState.consoleMessages || [];
-                AppState.consoleMessages.push({ level, text, timestamp: Date.now() });
-                updateConsoleCount();
+                AppState.consoleMessages.push({ level, args, timestamp: Date.now() });
+                updateConsoleCount?.();
+                renderConsoleMessages?.();
             } catch (e) { }
-            try { orig.apply(console, args); } catch (e) { }
+            try { orig.apply(console, arguments); } catch (e) { }
         };
     });
 })();
@@ -241,30 +292,19 @@ function updateConsoleCount() {
 }
 
 function getAuthStoredUser() {
-    if (AppState.currentUser && AppState.currentUser.id) return AppState.currentUser;
     const authStored = typeof AuthService?.getStoredUser === 'function' ? AuthService.getStoredUser() : null;
     if (authStored && authStored.id) {
-        AppState.currentUser = authStored;
         return authStored;
     }
     return null;
 }
 
 async function initApp() {
-    try {
-        const currentUser = await AuthService?.getCurrentUser() || null;
-        if (currentUser) {
-            AppState.currentUser = currentUser;
-        }
-        updateProfileImage(AppState.currentUser);
-    } catch (e) {
-        console.warn('Failed to get current user:', e);
-    }
     initializeEventListeners();
     updateMenuAuthButton();
     changeScreen('main');
     try {
-        await updateUsers();
+        await checkForUpdateUsers();
     } catch (e) {
         console.warn('Failed to update users:', e);
     }
@@ -304,7 +344,7 @@ async function renderNotifications(user = null) {
     if (!container) return;
     container.innerHTML = getSkeletonHtml('notifications');
     if (!user) {
-        try { await updateUsers(); } catch { }
+        try { await checkForUpdateUsers(); } catch { }
         user = getAuthStoredUser();
     }
     if (!user) {
@@ -409,7 +449,6 @@ function markNotificationRead(idx) {
     if (!notification) return;
 
     notification.read = true;
-    AppState.currentUser = user;
     renderNotifications(user);
     persistNotificationOperation('mark_read', { notificationId: notification.id }).catch(() => { });
 }
@@ -422,7 +461,6 @@ function markAllNotificationsRead() {
         .map(n => n.id);
     if (unreadIds.length === 0) return;
     user.notifications = user.notifications.map(n => ({ ...n, read: true }));
-    AppState.currentUser = user;
     renderNotifications(user);
     persistNotificationOperation('mark_all_read', { notificationIds: unreadIds }).catch(() => { });
 }
@@ -433,7 +471,6 @@ function clearReadNotifications() {
     const readNotifications = user.notifications.filter(n => n.read);
     const readIds = readNotifications.map(n => n.id);
     user.notifications = user.notifications.filter(n => !n.read);
-    AppState.currentUser = user;
     renderNotifications(user);
     persistNotificationOperation('clear_all', { notificationIds: readIds }).catch(() => { });
 }
@@ -453,8 +490,7 @@ async function persistNotificationOperation(action, data) {
             throw new Error('Unknown error');
         }
         if (resData.user) {
-            AppState.currentUser = resData.user;
-            renderNotifications(AppState.currentUser);
+            renderNotifications(resData.user);
         } else renderNotifications();
     } catch (e) {
         console.warn('Failed to persist notification operation.', e);
@@ -478,7 +514,6 @@ function initializeEventListeners() {
             if (screenId === 'userProfile') {
                 const currentUser = getAuthStoredUser();
                 loadProfileById(currentUser?.id || null);
-                updateProfileImage(currentUser);
             }
             else if (screenId === 'leaders') loadLeaderboard();
             else if (screenId === 'code') displayCodes('trending');
@@ -514,10 +549,6 @@ function initializeEventListeners() {
 
     const closeBtn = document.getElementById('closeSideMenu');
     if (closeBtn) closeBtn.addEventListener('click', closeSideMenu);
-    const consoleBtn = document.getElementById('consoleBtn');
-    if (consoleBtn) consoleBtn.addEventListener('click', (e) => {
-        openConsoleModal();
-    });
     const menuOverlay = document.getElementById('sideMenuOverlay');
     if (menuOverlay) menuOverlay.addEventListener('click', (e) => {
         if (e.target === menuOverlay) closeSideMenu();
@@ -552,8 +583,13 @@ function initializeEventListeners() {
 
     const profileSaveBtn = document.getElementById('profileSaveBtn');
     const profileCancelBtn = document.getElementById('profileCancelBtn');
-    if (profileSaveBtn) profileSaveBtn.addEventListener('click', (e) => saveProfileChanges(e.target));
+    const selectImageBtn = document.getElementById('selectImageBtn');
+    const photoInput = document.getElementById('profileEditorPhotoInput');
+    if (profileSaveBtn) profileSaveBtn.addEventListener('click', (e) => saveProfileChanges());
     if (profileCancelBtn) profileCancelBtn.addEventListener('click', cancelProfileEdit);
+    if (selectImageBtn && photoInput) {
+        selectImageBtn.addEventListener('click', () => photoInput.click());
+    }
 
     const deleteAccountBtn = document.getElementById('deleteAccountBtn');
     if (deleteAccountBtn) deleteAccountBtn.addEventListener('click', deleteOrLogoutConfirm);
@@ -623,7 +659,17 @@ function renderConsoleMessages() {
     list.innerHTML = msgs.map(m => {
         const time = new Date(m.timestamp).toLocaleTimeString();
         const color = m.level === 'error' ? '#ff6b6b' : (m.level === 'warn' ? '#f59e0b' : 'var(--text-primary)');
-        return `<div style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.02);"><div style=\"font-size:11px;color:${color};font-weight:600;\">[${m.level}] ${time}</div><div style=\"font-family:monospace;white-space:pre-wrap;color:var(--text-primary);\">${escapeHtml(String(m.text))}</div></div>`;
+        const span = document.createElement('span');
+        const argsList = m.args || [];
+        let text;
+        if (argsList[0].startsWith('%c') && argsList.length === 2) {
+            text = argsList[0].split('%c').pop();
+            span.style = argsList[1];
+        } else {
+            text = argsList.join(' ');
+        }
+        span.textContent = escapeHtml(text);
+        return `<div style=\"padding:4px;\"><div style=\"font-size:11px;color:${color};font-weight:600;\">[${m.level}] ${time}</div><div style=\"font-family:monospace;white-space:pre-wrap;color:var(--text-primary);\">${span.outerHTML}</div></div><div style=\"margin:2px 0;border:none;border-top:1px solid rgba(255,255,255,0.1);padding:0;height:0;\"</div>`;
     }).join('');
     list.scrollTop = list.scrollHeight;
 }
@@ -633,70 +679,117 @@ function openProfileEditor() {
     if (!user) return;
     const nameIn = document.getElementById('profileEditorName');
     const photoIn = document.getElementById('profileEditorPhoto');
-    if (nameIn) nameIn.value = user.name || '';
-    if (photoIn) photoIn.value = user.photo || '';
+    const photoInput = document.getElementById('profileEditorPhotoInput');
+    const name = user.name || '';
+    if (nameIn) nameIn.value = name;
+    if (photoIn) photoIn.outerHTML = createUserAvatar(user.photo || '', name, photoIn.outerHTML);
+    if (photoInput) {
+        photoInput.value = '';
+        updatePhotoValidation(null);
+        photoInput.onchange = async () => {
+            if (!photoInput.files || !photoInput.files[0]) {
+                updatePhotoValidation(null);
+                return;
+            }
+            const file = photoInput.files[0];
+            try {
+                const data = await getFileSelectionUrl();
+                updatePhotoValidation(data);
+                if (isPhotoTooLarge(data)) {
+                    showNotification(`Image too large. Max ${formatBytes(MAX_PHOTO_SIZE)}`);
+                    return;
+                }
+                const photoInEl = document.getElementById('profileEditorPhoto');
+                if (photoInEl && data) photoInEl.src = data;
+            } catch (e) {
+                console.error('Failed reading file:', e);
+                showNotification('Failed to read selected image');
+            }
+        };
+    }
     changeScreen('profileEditor', true);
     const btn = document.getElementById('profileSaveBtn');
     if (btn) {
-        btn.innerHTML = '<i class="fas fa-check"></i> Save';
+        btn.innerHTML = '<i class="fas fa-cloud-arrow-up"></i> Save';
         btn.disabled = false;
     }
 }
 
-async function saveProfileChanges(btn) {
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-    const nameIn = document.getElementById('profileEditorName');
-    const photoIn = document.getElementById('profileEditorPhoto');
-    if (!nameIn || !photoIn) {
-        btn.disabled = false;
-        return;
-    }
-    const name = nameIn.value.trim();
-    const photo = photoIn.value.trim();
-    if (!name) {
-        btn.disabled = false;
-        showNotification('Please enter your name.');
-        return;
-    }
-    if (typeof AuthService === 'undefined' || !AuthService.isAuthenticated()) {
-        btn.disabled = false;
-        showNotification('You are not authenticated.');
-        return;
-    }
-
+async function saveProfileChanges() {
+    const saveBtn = document.getElementById('profileSaveBtn');
+    saveBtn.disabled = true;
     try {
+        const nameIn = document.getElementById('profileEditorName');
+        if (!nameIn) {
+            saveBtn.disabled = false;
+            return;
+        }
+        const name = nameIn.value.trim();
+        if (!name) {
+            saveBtn.disabled = false;
+            showNotification('Please enter your name.');
+            return;
+        }
+        if (typeof AuthService === 'undefined' || !AuthService.isAuthenticated()) {
+            saveBtn.disabled = false;
+            showNotification('You are not authenticated.');
+            return;
+        }
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        const photoData = await getFileSelectionUrl();
+        if (photoData && isPhotoTooLarge(photoData)) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="fas fa-cloud-arrow-up"></i> Save';
+            showNotification(`Selected image is too large. Max ${formatBytes(MAX_PHOTO_SIZE)}`);
+            return;
+        }
+        const photoUrl = document.getElementById("profileEditorPhoto").src || null;
+        const photo = photoData?.trim() || photoUrl;
         const res = await fetch(Router.routers.apiUser, {
             method: 'PUT', headers: getHeaders(true),
             body: JSON.stringify({ name, photo })
         });
         const data = await res.json();
-        btn.disabled = false;
-        if (!res.ok) throw new Error(data.error || `Status ${res.status}`);
-
-        AppState.currentUser = data.user || AppState.currentUser;
-        updateProfileImage(AppState.currentUser);
+        if (!res.ok || data.error) throw new Error(data.error || `Status ${res.status}`);
+        const newUser = data.user;
+        AuthService.setCurrentUser(newUser);
+        updateProfileImage(newUser);
         const sideName = document.getElementById('sideMenuName');
-        if (sideName) sideName.textContent = AppState.currentUser?.name || 'Unknown';
+        const newName = newUser?.name || 'Unknown';
+        if (sideName) sideName.textContent = newName;
         const sideAvatar = document.getElementById('sideMenuAvatar');
-        if (sideAvatar) sideAvatar.src = AppState.currentUser?.photo || createInitialsAvatar(AppState.currentUser?.name || 'Unknown');
-
+        if (sideAvatar) sideAvatar.outerHTML = createUserAvatar(newUser?.photo, newName, sideAvatar.attributes);
+        saveBtn.disabled = false;
         showNotification('Profile updated');
         changeScreen('userProfile');
-        showUserProfile(AppState.currentUser);
+        showUserProfile(newUser);
     } catch (err) {
-        btn.disabled = false;
-        console.error('Failed to save profile:', err);
-        showNotification('Failed to update profile');
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="fas fa-cloud-arrow-up"></i> Save';
+        console.error('Failed to save profile:', err.message);
+        if (err.message && err.message.includes('is too large')) {
+            showNotification('Photo is too large. Please use a smaller image.');
+            return;
+        }
+        showNotification('Failed to update profile.');
     }
 }
 
+async function getFileSelectionUrl() {
+    const photoInput = document.getElementById('profileEditorPhotoInput');
+    if (!photoInput || !photoInput.files || !photoInput.files[0]) return;
+    const file = photoInput.files[0];
+    const reader = new FileReader();
+    const photoData = await new Promise((resolve, reject) => {
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+    });
+    return photoData || null;
+}
+
 function cancelProfileEdit() {
-    changeScreen('userProfile');
-    const currentUser = getAuthStoredUser();
-    if (currentUser && currentUser.id) {
-        loadProfileById(currentUser.id);
-    }
+    changeScreen('settingsScreen');
 }
 
 function toggleSideMenu() {
@@ -798,7 +891,7 @@ async function loadProfileById(id = null) {
         userScreen.innerHTML = `<div style="color:var(--text-secondary)">Failed to load profile</div>`;
     };
     try {
-        await updateUsers();
+        await checkForUpdateUsers();
     } catch { }
     try {
         if (!id) {
@@ -809,7 +902,14 @@ async function loadProfileById(id = null) {
             showUserProfile(user);
             return;
         } else {
-            throw new Error('User not found');
+            await updateUsers();
+            user = getUserById(id);
+            if (user) {
+                showUserProfile(user);
+                return;
+            } else {
+                throw new Error('User not found');
+            }
         }
     } catch (err) {
         showFallback();
@@ -912,7 +1012,7 @@ async function loadLeaderboard() {
     const leaderboardContent = document.getElementById('leaderboardContent');
     leaderboardContent.innerHTML = getSkeletonHtml('leaderboard');
     try {
-        await updateUsers();
+        await checkForUpdateUsers();
     } catch (err) {
         errMsg = err.name === 'AbortError' ? 'Request timed out.' : '';
         const msg = errMsg ? errMsg : err.message || 'Unknown error.';
@@ -1034,7 +1134,7 @@ function showLeaderboardMessage(container, message) {
 
     const msg = document.createElement('div');
     msg.style.cssText = 'color:var(--text-secondary);font-size:13px;line-height:1.4;';
-    msg.innerHTML = escapeHtml(String(message || 'Please try again later.'));
+    msg.innerHTML = escapeHtml(String(message) || 'Please try again later.');
 
     textWrap.appendChild(title);
     textWrap.appendChild(msg);
@@ -1189,20 +1289,17 @@ function updateProfileImage(user) {
     const profileImage = document.getElementById('profileImage');
     const profileIcon = document.getElementById('profileIcon');
     if (!profileImage) return;
-    const photo = user && user.photo ? user.photo : createInitialsAvatar(user && user.name);
-    profileImage.src = photo;
-    profileImage.onload = () => {
-        profileImage.style.display = 'block';
+    const photoHtml = createUserAvatar(user.photo, user.name, profileImage.attributes);
+    profileImage.outerHTML = photoHtml;
+    const newProfileImage = document.getElementById('profileImage');
+    if (!newProfileImage) return;
+    newProfileImage.onload = () => {
+        newProfileImage.style.display = 'block';
         if (profileIcon) profileIcon.style.display = 'none';
     };
-    profileImage.onerror = () => {
-        const fallback = createInitialsAvatar(user && user.name);
-        if (profileImage.src !== fallback) {
-            profileImage.src = fallback;
-        } else {
-            profileImage.style.display = 'none';
-            if (profileIcon) profileIcon.style.display = 'block';
-        }
+    newProfileImage.onerror = () => {
+        newProfileImage.style.display = 'none';
+        if (profileIcon) profileIcon.style.display = 'block';
     };
 }
 
@@ -1341,8 +1438,9 @@ function displayCodes(filterType) {
                     }
                     try {
                         const ownerId = result.code.userid || null;
-                        if (ownerId && Array.isArray(AppState.users)) {
-                            const owner = AppState.users.find(u => String(u.id) === String(ownerId));
+                        const users = getUsersCache();
+                        if (ownerId && users) {
+                            const owner = users.find(u => String(u.id) === String(ownerId));
                             if (owner) {
                                 const cid = result.code.id || null;
                                 if (cid !== null) {
@@ -1350,9 +1448,6 @@ function displayCodes(filterType) {
                                     if (idx !== -1) {
                                         owner.codes[idx] = { ...owner.codes[idx], ...result.code };
                                     }
-                                }
-                                if (String(AppState.currentUser?.id) === String(ownerId)) {
-                                    AppState.currentUser = { ...AppState.currentUser, ...owner };
                                 }
                             }
                         }
@@ -1450,21 +1545,21 @@ function deleteOrLogoutConfirm() {
     const modal = document.getElementById('logoutModal');
     modal.innerHTML = `
         <div class="confirmation-dialog big">
-            <h3 style="color:var(--danger);">Delete Account?</h3>
-            <p>To use a different account, log out. Deleting your account will permanently remove all your data.</p>
-            <p>Do you understand the consequences?</p>
+            <p class="title" style="color:var(--danger);">Delete Account?</p>
+            <p class="info">To use a different account, log out. Deleting your account will permanently remove all your data.</p>
+            <p class="info">Do you understand the consequences?</p>
             <div>
                 <button onclick="cancelDeleteAccount()" class="secondary-button"
                     style="flex:1;border-color:rgba(99,102,241,0.3);">
-                    Cancel
+                    No, cancel
                 </button>
-                <button onclick="confirmLogout()" class="primary-button red-back-btn"
-                    style="flex:1;box-shadow:0 4px 15px rgba(231,76,60,0.3);">
+                <button onclick="handleLogout()" class="primary-button green-back-btn"
+                    style="flex:1;">
                     Just log out
                 </button>
                 <button onclick="deleteAccountConfirm()" class="primary-button red-back-btn"
-                    style="flex:1;box-shadow:0 4px 15px rgba(231,76,60,0.3);">
-                    Yes
+                    style="flex:1;">
+                    Yes, delete
                 </button>
             </div>
         </div>
@@ -1476,14 +1571,14 @@ async function deleteAccountConfirm() {
     const modal = document.getElementById('logoutModal');
     modal.innerHTML = `
         <div class="confirmation-dialog">
-            <h3 style="color:var(--danger);">Are you sure?</h3>
-            <p>This action cannot be undone. All your data will be permanently deleted.</p>
+            <p class="title" style="color:var(--danger);">Are you sure?</p>
+            <p class="info">Your account and all its data will be permanently deleted. This action cannot be undone.</p>
             <div>
                 <button onclick="cancelDeleteAccount()" class="secondary-button"
                     style="flex:1;border-color:rgba(99,102,241,0.3);">
                     Cancel
                 </button>
-                <button onclick="confirmDeleteAccount()" class="primary-button red-back-btn"
+                <button onclick="confirmDeleteAccount()" id="permDeleteAccountBtn" class="primary-button red-back-btn"
                     style="flex:1;box-shadow:0 4px 15px rgba(231,76,60,0.3);">
                     Delete
                 </button>
@@ -1501,7 +1596,11 @@ async function confirmDeleteAccount() {
     const modal = document.getElementById('logoutModal');
     const deleteBtn = document.getElementById('deleteAccountBtn');
     if (deleteBtn) deleteBtn.disabled = true;
-
+    const permDeleteBtn = document.getElementById('permDeleteAccountBtn');
+    if (permDeleteBtn) {
+        permDeleteBtn.disabled = true;
+        permDeleteBtn.textContent = "Deleting...";
+    }
     try {
         if (typeof AuthService === 'undefined' || !AuthService.isAuthenticated()) {
             throw new Error('You are not authenticated.');
