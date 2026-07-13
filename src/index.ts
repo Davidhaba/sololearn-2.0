@@ -45,9 +45,13 @@ interface User {
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ limit: '5mb', extended: true }));
 
 const serviceAccount = JSON.parse(process.env.FIREKEY_JSON || '{}');
+if (!serviceAccount || typeof serviceAccount !== 'object' || !serviceAccount.project_id || !serviceAccount.client_email || !serviceAccount.private_key) {
+    throw new Error('Firebase service account credentials are invalid or missing. Set FIREKEY_JSON to a valid Firebase service account JSON string.');
+}
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
     projectId: serviceAccount.project_id
@@ -59,7 +63,7 @@ async function getUsers(userId: string) {
     const users = snapshot.docs.map((doc: any) => {
         const data = { id: doc.id, ...doc.data() };
         if (data.codes && Array.isArray(data.codes)) {
-            data.codes = data.codes.filter((code: Code) => code.isPublic || code.userid === userId);
+            data.codes = data.codes.filter((code: Code) => code.isPublic || (userId && code.userid === userId));
         }
         return data;
     });
@@ -119,7 +123,7 @@ app.post('/auth/register', async (req: Request, res: Response) => {
             createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
         });
         res.status(201).json({ token, user: { id: accountRef.id, email, name } });
-        sendNotification(accountRef.id, { title: 'Welcome to Sololearn 2.0!', text: 'Thanks for joining us. Start coding!' }).catch(console.error);
+        sendNotification(accountRef.id, { title: `Welcome to Sololearn 2.0${name ? `, ${name}` : ''}!`, text: 'Thanks for joining us. Start coding!' }).catch(console.error);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Registration failed' });
@@ -136,10 +140,11 @@ app.post('/auth/login', async (req: Request, res: Response) => {
         if (!verifyPassword(password, account.data().passwordHash)) return res.status(401).json({ error: 'Invalid email or password' });
         const token = createToken(account.id, email);
         res.json({ token, user: { id: account.id, email } });
+        const notifName = account.data()?.name || null;
         sendNotification(account.id, {
-            title: 'Welcome back.',
-            text: `Welcome there! You've signed in via email. Keep coding!`
-        });
+            title: `Welcome back${notifName ? `, ${notifName}` : ''}!`,
+            text: `You've signed in via email. Keep coding!`
+        }).catch(console.error);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Login failed' });
@@ -184,9 +189,9 @@ app.post('/auth/oauth', async (req: Request, res: Response) => {
             });
 
             sendNotification(accountId, {
-                title: 'Welcome to Sololearn 2.0!',
-                text: `Welcome ${name || 'there'}! You've signed in via ${provider}. Start coding!`
-            });
+                title: `Welcome to Sololearn 2.0${name ? `, ${name}` : ''}!`,
+                text: `You've signed in via ${provider}. Start coding!`
+            }).catch(console.error);
         } else {
             accountId = accountSnapshot.docs[0].id;
             const existingAccount = accountSnapshot.docs[0].data();
@@ -205,10 +210,11 @@ app.post('/auth/oauth', async (req: Request, res: Response) => {
                 await db.collection('accounts').doc(accountId).update({ provider });
             }
 
+            const notifName = userDoc.data().name || null;
             sendNotification(accountId, {
-                title: 'Welcome back.',
-                text: `Welcome ${userDoc.data()?.name || 'there'}! You've signed in via ${provider}. Keep coding!`
-            });
+                title: `Welcome back${notifName ? `, ${notifName}` : ''}!`,
+                text: `You've signed in via ${provider}. Keep coding!`
+            }).catch(console.error);
         }
 
         const token = createToken(accountId, email);
@@ -253,12 +259,18 @@ app.put('/api/users/user', authMiddleware, async (req: Request, res: Response) =
         const { name, photo } = req.body;
         if (!name && !photo) return res.status(400).json({ error: 'Provide name or photo' });
         const updates: Partial<User> = {};
-        if (name.trim()) updates.name = name.trim();
-        updates.photo = photo.trim() || '';
+        if (typeof name === 'string' && name.trim()) updates.name = name.trim();
+        if (typeof photo === 'string') updates.photo = photo.trim() || '';
         await updateUser(userId, updates);
         const user = await getUser(userId);
         res.json({ user });
-    } catch (err) { res.status(500).json({ error: 'Update failed' }); }
+    } catch (err: any) {
+        console.error('Put user error:', err.message);
+        if (err.message && err.message.includes('is longer')) {
+            return res.status(400).json({ error: 'Photo is too large. Please use a smaller image.' });
+        }
+        res.status(500).json({ error: 'Update failed' });
+    }
 });
 
 app.delete('/api/users/user', authMiddleware, async (req: Request, res: Response) => {
@@ -350,9 +362,11 @@ app.get('/api/codes/:codeId', authMiddleware, async (req: Request, res: Response
         const { codeId } = req.params;
         for (const userData of users) {
             const codes = userData.codes || [];
-            const code = codes.find((c: Code) => c.id == Number(codeId));
-            if (code) {
-                return res.json(code);
+            const idx = codes.findIndex((c: Code) => c.id == Number(codeId));
+            if (idx !== -1 && codes[idx]) {
+                codes[idx].views = (codes[idx].views || 0) + 1;
+                updateUser(userData.id, { codes }, false);
+                return res.json(codes[idx]);
             }
         }
         res.status(404).json({ error: 'Code not found or private' });
@@ -382,26 +396,8 @@ app.post('/api/codes/:codeId/like', authMiddleware, async (req: Request, res: Re
     } catch (err) { res.status(500).json({ success: false, error: 'Like failed' }); }
 });
 
-app.post('/api/codes/:codeId/view', authMiddleware, async (req: Request, res: Response) => {
-    try {
-        const userId = req.user!.userId;
-        const users = await getUsers(userId);
-        const { codeId } = req.params;
-        for (const userData of users) {
-            const codes = userData.codes || [];
-            const idx = codes.findIndex((c: Code) => c.id == Number(codeId));
-            if (idx !== -1) {
-                codes[idx].views = (codes[idx].views || 0) + 1;
-                await updateUser(userData.id, { codes }, false);
-                return res.json({ success: true, views: codes[idx].views });
-            }
-        }
-        res.status(404).json({ success: false, error: 'Code not found' });
-    } catch (err) { res.status(500).json({ success: false, error: 'View failed' }); }
-});
-
 app.post('/api/execute', authMiddleware, async (req: Request, res: Response) => {
-    res.status(500).json({ error: 'You can only run web code (HTML, CSS, and JavaScript)' });
+    res.status(500).json({ error: 'You can only run Web or Python code' });
 });
 
 app.get('/:name', (req: Request, res: Response) => {
@@ -410,7 +406,7 @@ app.get('/:name', (req: Request, res: Response) => {
 });
 
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-    console.error('Error:', err);
+    console.error('Error:', err.message || err);
     res.status(500).json({ error: 'Internal server error' });
 });
 
